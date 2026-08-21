@@ -35,7 +35,30 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data.pop('password2')
-        return User.objects.create_user(**validated_data)
+        role = validated_data.get('role', 'patient')
+
+        user = User.objects.create_user(**validated_data)
+
+        # Auto-create profile based on role
+        if role == 'patient':
+            from apps.models.patient import Patient
+            Patient.objects.create(
+                user=user,
+                date_of_birth='2000-01-01',
+                gender='other'
+            )
+        elif role == 'doctor':
+            from apps.models.doctor import Doctor
+            Doctor.objects.create(
+                user=user,
+                specialty='general',
+                qualification='Pending',
+                experience_years=0,
+                license_number=f'TEMP-{user.id.hex[:8].upper()}',
+                is_verified=False
+            )
+
+        return user
 
 
 class LoginSerializer(serializers.Serializer):

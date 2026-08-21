@@ -3,11 +3,21 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate, logout
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.core.mail import send_mail
+from django.conf import settings
+from django.utils.decorators import method_decorator
+from django_ratelimit.decorators import ratelimit
 from apps.models.user import User
 from apps.schemas.user_schema import UserSerializer, RegisterSerializer, LoginSerializer, ChangePasswordSerializer
+from apps.schemas.password_schema import PasswordResetRequestSerializer, PasswordResetConfirmSerializer
 
+
+@method_decorator(ratelimit(key='ip', rate='3/m', method='POST', block=True), name='create')
 class RegisterView(generics.CreateAPIView):
-    """User registration endpoint"""
+    """User registration endpoint with rate limiting (3 per minute per IP)"""
     queryset = User.objects.all()
     permission_classes = [permissions.AllowAny]
     serializer_class = RegisterSerializer
@@ -27,8 +37,9 @@ class RegisterView(generics.CreateAPIView):
         }, status=status.HTTP_201_CREATED)
 
 
+@method_decorator(ratelimit(key='ip', rate='5/m', method='POST', block=True), name='post')
 class LoginView(generics.GenericAPIView):
-    """User login endpoint"""
+    """User login endpoint with rate limiting (5 per minute per IP)"""
     permission_classes = [permissions.AllowAny]
     serializer_class = LoginSerializer
 
@@ -126,3 +137,46 @@ class UserStatusView(APIView):
             'is_authenticated': True,
             'user': UserSerializer(request.user).data
         }, status=status.HTTP_200_OK)
+
+
+class PasswordResetRequestView(generics.GenericAPIView):
+    """Request password reset email"""
+    permission_classes = [permissions.AllowAny]
+    serializer_class = PasswordResetRequestSerializer
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = User.objects.get(email=serializer.validated_data['email'])
+        token = default_token_generator.make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+
+        # Frontend URL - change to your actual frontend URL
+        reset_link = f"http://localhost:3000/reset-password?uid={uid}&token={token}"
+
+        send_mail(
+            subject="Password Reset - MediCare Hub",
+            message=f"Hello {user.full_name},\n\nClick the link below to reset your password:\n\n{reset_link}\n\nIf you didn't request this, please ignore this email.",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+
+        return Response({"message": "Password reset link sent to your email."})
+
+
+class PasswordResetConfirmView(generics.GenericAPIView):
+    """Confirm password reset with token"""
+    permission_classes = [permissions.AllowAny]
+    serializer_class = PasswordResetConfirmSerializer
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = serializer.validated_data['user']
+        user.set_password(serializer.validated_data['new_password'])
+        user.save()
+
+        return Response({"message": "Password has been reset successfully."})

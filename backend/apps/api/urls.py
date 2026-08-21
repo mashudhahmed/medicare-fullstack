@@ -2,12 +2,9 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import auth_views
 from .views import admin_views, patient_views, doctor_views, appointment_views, billing_views, medical_record_views
+from .views import notification_views
 
 app_name = 'api'
-
-# Router for ViewSets (if any)
-# router = DefaultRouter()
-# router.register('patients', patient_views.PatientViewSet)
 
 urlpatterns = [
     # Authentication
@@ -18,11 +15,15 @@ urlpatterns = [
     path('auth/change-password/', auth_views.ChangePasswordView.as_view(), name='change-password'),
     path('auth/refresh-token/', auth_views.RefreshTokenView.as_view(), name='refresh-token'),
     path('auth/status/', auth_views.UserStatusView.as_view(), name='auth-status'),
+    # Password Reset
+    path('auth/password-reset/', auth_views.PasswordResetRequestView.as_view(), name='password-reset'),
+    path('auth/password-reset/confirm/', auth_views.PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
 
     # Admin
     path('admin/users/', admin_views.ListUsersView.as_view(), name='admin-users'),
     path('admin/users/<uuid:pk>/', admin_views.UserDetailView.as_view(), name='admin-user-detail'),
     path('admin/users/<uuid:user_id>/status/', admin_views.UpdateUserStatusView.as_view(), name='admin-user-status'),
+    path('admin/doctors/<uuid:doctor_id>/verify/', admin_views.VerifyDoctorView.as_view(), name='admin-verify-doctor'),
 
     # Patients
     path('patients/', patient_views.ListPatientsView.as_view(), name='patient-list'),
@@ -51,4 +52,9 @@ urlpatterns = [
     path('medical-records/<uuid:pk>/', medical_record_views.MedicalRecordDetailView.as_view(), name='medical-record-detail'),
     path('medical-records/my/', medical_record_views.MyMedicalRecordsView.as_view(), name='my-medical-records'),
     path('patients/<uuid:patient_id>/records/', medical_record_views.PatientMedicalRecordsView.as_view(), name='patient-medical-records'),
+
+    # Notifications
+    path('notifications/', notification_views.NotificationListView.as_view(), name='notifications'),
+    path('notifications/<uuid:pk>/read/', notification_views.MarkNotificationReadView.as_view(), name='notification-read'),
+    path('notifications/read-all/', notification_views.MarkAllNotificationsReadView.as_view(), name='notifications-read-all'),
 ]

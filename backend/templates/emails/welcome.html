@@ -1,0 +1,24 @@
+{% extends "emails/base.html" %}
+
+{% block title %}Welcome to MediCare Hub{% endblock %}
+
+{% block content %}
+  <h2>Welcome to MediCare Hub 🎉</h2>
+  <p>Hello <strong>{{ full_name }}</strong>,</p>
+  <p>Thank you for joining MediCare Hub! Your account has been created successfully.</p>
+
+  <div class="info-box">
+    <p>You can now:</p>
+    <ul style="margin: 8px 0; padding-left: 20px; color: #475569;">
+      <li>Book appointments with verified doctors</li>
+      <li>View and manage your medical records</li>
+      <li>Track billing and payments</li>
+    </ul>
+  </div>
+
+  <a href="{{ frontend_url }}/dashboard" class="button">
+    Go to Dashboard
+  </a>
+
+  <p>We’re excited to have you on board!</p>
+{% endblock %}

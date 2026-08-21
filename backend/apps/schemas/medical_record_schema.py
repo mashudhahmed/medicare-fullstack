@@ -13,7 +13,7 @@ class MedicalRecordSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'patient', 'patient_details', 'doctor', 'doctor_details',
             'record_type', 'title', 'description',
-            'details', 'attachments',
+            'details', 'attachments', 'attachment_file',
             'record_date', 'is_confidential',
             'created_at', 'updated_at'
         ]
@@ -25,5 +25,6 @@ class CreateMedicalRecordSerializer(serializers.ModelSerializer):
         model = MedicalRecord
         fields = [
             'patient', 'record_type', 'title', 'description',
-            'details', 'attachments', 'record_date', 'is_confidential'
+            'details', 'attachments', 'attachment_file',
+            'record_date', 'is_confidential'
         ]

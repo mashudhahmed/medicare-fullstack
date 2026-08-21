@@ -150,6 +150,10 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# File upload settings
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880   # 5MB
+
 # ---------------------------------------------------------------------------
 # Email
 # ---------------------------------------------------------------------------
@@ -187,7 +191,7 @@ REST_FRAMEWORK = {
     'DEFAULT_PARSER_CLASSES': (
         'rest_framework.parsers.JSONParser',
         'rest_framework.parsers.FormParser',
-        'rest_framework.parsers.MultiPartParser',
+        'rest_framework.parsers.MultiPartParser',  # For file uploads
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
@@ -204,7 +208,7 @@ REST_FRAMEWORK = {
         'anon': '100/hour',
         'user': '1000/hour',
     },
-    'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler',
+    'EXCEPTION_HANDLER': 'apps.core.exceptions.custom_exception_handler',  # Custom exception handler
 }
 
 # ---------------------------------------------------------------------------

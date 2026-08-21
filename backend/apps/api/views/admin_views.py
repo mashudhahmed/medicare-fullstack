@@ -2,8 +2,11 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from apps.models.user import User
+from apps.models.doctor import Doctor
 from apps.schemas.user_schema import UserSerializer
+from apps.schemas.doctor_schema import DoctorSerializer
 from apps.core.permissions import IsAdmin
+from apps.services.notification_service import NotificationService
 
 
 class ListUsersView(generics.ListAPIView):
@@ -51,4 +54,39 @@ class UpdateUserStatusView(APIView):
         return Response({
             'message': 'User status updated successfully',
             'user': UserSerializer(user).data
+        }, status=status.HTTP_200_OK)
+
+
+class VerifyDoctorView(APIView):
+    """Admin can verify / unverify a doctor"""
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+
+    def patch(self, request, doctor_id):
+        try:
+            doctor = Doctor.objects.get(id=doctor_id, is_deleted=False)
+        except Doctor.DoesNotExist:
+            return Response({"error": "Doctor not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        is_verified = request.data.get('is_verified')
+        if is_verified is None:
+            return Response(
+                {"error": "is_verified field is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        doctor.is_verified = bool(is_verified)
+        doctor.save()
+
+        # Send notification
+        status_text = "verified" if doctor.is_verified else "unverified"
+        NotificationService.create_in_app(
+            user=doctor.user,
+            title=f"Account {status_text.title()}",
+            message=f"Your doctor account has been {status_text} by the administrator.",
+            notification_type='system'
+        )
+
+        return Response({
+            "message": f"Doctor has been {status_text} successfully",
+            "doctor": DoctorSerializer(doctor).data
         }, status=status.HTTP_200_OK)

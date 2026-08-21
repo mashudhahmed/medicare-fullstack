@@ -3,6 +3,7 @@ from django.utils import timezone
 import uuid
 from .patient import Patient
 from .doctor import Doctor
+from .managers import SoftDeleteManager
 
 
 class MedicalRecord(models.Model):
@@ -23,6 +24,9 @@ class MedicalRecord(models.Model):
     description = models.TextField()
     details = models.JSONField(default=dict, blank=True)
     attachments = models.JSONField(default=list, blank=True)
+    
+    # File attachment for medical records
+    attachment_file = models.FileField(upload_to='medical_records/', blank=True, null=True)
 
     record_date = models.DateField()
     is_confidential = models.BooleanField(default=False)
@@ -31,6 +35,10 @@ class MedicalRecord(models.Model):
     deleted_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    # Soft Delete Manager
+    objects = SoftDeleteManager()
+    all_objects = models.Manager()
 
     class Meta:
         db_table = 'medical_records'
@@ -47,4 +55,9 @@ class MedicalRecord(models.Model):
     def soft_delete(self):
         self.is_deleted = True
         self.deleted_at = timezone.now()
+        self.save()
+
+    def restore(self):
+        self.is_deleted = False
+        self.deleted_at = None
         self.save()

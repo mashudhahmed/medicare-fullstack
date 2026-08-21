@@ -3,6 +3,7 @@ from django.utils import timezone
 from apps.models.appointment import Appointment
 from apps.models.patient import Patient
 from apps.models.doctor import Doctor
+from apps.services.notification_service import NotificationService
 
 
 class AppointmentService:
@@ -59,8 +60,28 @@ class AppointmentService:
         if appointment.status in ['completed', 'cancelled', 'no_show']:
             return None, f"Cannot cancel appointment with status: {appointment.status}"
 
+        old_status = appointment.status
         appointment.status = 'cancelled'
         appointment.save()
+
+        # Send notification
+        NotificationService.notify_appointment_status_change(appointment, old_status, 'cancelled')
+
+        return appointment, None
+
+    @staticmethod
+    def update_appointment_status(appointment, new_status, user):
+        """Update appointment status and send notifications"""
+        if appointment.status == new_status:
+            return appointment, "Status already set to this value"
+
+        old_status = appointment.status
+        appointment.status = new_status
+        appointment.save()
+
+        # Send notification for status change
+        NotificationService.notify_appointment_status_change(appointment, old_status, new_status)
+
         return appointment, None
 
     @staticmethod

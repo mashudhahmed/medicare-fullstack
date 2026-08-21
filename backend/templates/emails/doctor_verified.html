@@ -1,0 +1,24 @@
+{% extends "emails/base.html" %}
+
+{% block title %}Account Verified{% endblock %}
+
+{% block content %}
+  <h2>Your Doctor Account is Verified ✅</h2>
+  <p>Hello Dr. <strong>{{ full_name }}</strong>,</p>
+  <p>Great news! Your doctor account has been reviewed and verified by our team.</p>
+
+  <div class="info-box">
+    <p>You can now:</p>
+    <ul style="margin: 8px 0; padding-left: 20px; color: #475569;">
+      <li>Receive appointment requests from patients</li>
+      <li>Manage your availability</li>
+      <li>Access the full doctor dashboard</li>
+    </ul>
+  </div>
+
+  <a href="{{ frontend_url }}/doctor/dashboard" class="button">
+    Go to Doctor Dashboard
+  </a>
+
+  <p>Welcome to the MediCare Hub network!</p>
+{% endblock %}

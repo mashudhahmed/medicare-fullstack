@@ -3,6 +3,7 @@ from django.utils import timezone
 import uuid
 from .patient import Patient
 from .doctor import Doctor
+from .managers import SoftDeleteManager
 
 
 class Appointment(models.Model):
@@ -29,6 +30,10 @@ class Appointment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Soft Delete Manager
+    objects = SoftDeleteManager()
+    all_objects = models.Manager()
+
     class Meta:
         db_table = 'appointments'
         indexes = [
@@ -45,4 +50,9 @@ class Appointment(models.Model):
     def soft_delete(self):
         self.is_deleted = True
         self.deleted_at = timezone.now()
+        self.save()
+
+    def restore(self):
+        self.is_deleted = False
+        self.deleted_at = None
         self.save()

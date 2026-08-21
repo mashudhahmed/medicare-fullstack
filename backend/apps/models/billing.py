@@ -2,6 +2,7 @@ from django.db import models
 from django.utils import timezone
 import uuid
 from .patient import Patient
+from .managers import SoftDeleteManager
 
 
 class Billing(models.Model):
@@ -21,10 +22,10 @@ class Billing(models.Model):
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='billings')
 
     invoice_number = models.CharField(max_length=50, unique=True)
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
-    tax = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    tax = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    discount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING, db_index=True)
     payment_method = models.CharField(max_length=20, choices=PaymentMethod.choices, blank=True, null=True)
     due_date = models.DateField()
@@ -36,6 +37,10 @@ class Billing(models.Model):
     deleted_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    # Soft Delete Manager
+    objects = SoftDeleteManager()
+    all_objects = models.Manager()
 
     class Meta:
         db_table = 'billings'
@@ -57,4 +62,9 @@ class Billing(models.Model):
     def soft_delete(self):
         self.is_deleted = True
         self.deleted_at = timezone.now()
+        self.save()
+
+    def restore(self):
+        self.is_deleted = False
+        self.deleted_at = None
         self.save()

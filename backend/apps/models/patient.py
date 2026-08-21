@@ -2,6 +2,7 @@ from django.db import models
 from django.utils import timezone
 import uuid
 from .user import User
+from .managers import SoftDeleteManager
 
 
 class Patient(models.Model):
@@ -13,8 +14,8 @@ class Patient(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='patient_profile')
 
-    date_of_birth = models.DateField()
-    gender = models.CharField(max_length=10, choices=Gender.choices)
+    date_of_birth = models.DateField(default='2000-01-01')
+    gender = models.CharField(max_length=10, choices=Gender.choices, default=Gender.OTHER)
     blood_group = models.CharField(max_length=5, blank=True, null=True)
     emergency_contact = models.CharField(max_length=20, blank=True, null=True)
     emergency_contact_name = models.CharField(max_length=255, blank=True, null=True)
@@ -25,6 +26,10 @@ class Patient(models.Model):
     deleted_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    # Soft Delete Manager
+    objects = SoftDeleteManager()
+    all_objects = models.Manager()
 
     class Meta:
         db_table = 'patients'
@@ -39,4 +44,9 @@ class Patient(models.Model):
     def soft_delete(self):
         self.is_deleted = True
         self.deleted_at = timezone.now()
+        self.save()
+
+    def restore(self):
+        self.is_deleted = False
+        self.deleted_at = None
         self.save()

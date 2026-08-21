@@ -2,10 +2,10 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.utils import timezone
 import uuid
-from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
+from .managers import SoftDeleteManager
 
-class UserManager(BaseUserManager):
 
+class UserManager(models.Manager):
     def _create_user(self, email, password, **extra_fields):
         if not email:
             raise ValueError('Email is required')
@@ -55,11 +55,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     phone = models.CharField(max_length=20, unique=True, db_index=True, null=True, blank=True)
     address = models.TextField(blank=True, null=True)
 
-    profile_picture = models.URLField(blank=True, null=True)
+    # Profile picture - using ImageField for better file handling
+    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
     profile_picture_public_id = models.CharField(max_length=255, blank=True, null=True)
 
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.PATIENT, db_index=True)
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.APPROVED, db_index=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING, db_index=True)
 
     is_deleted = models.BooleanField(default=False, db_index=True)
     deleted_at = models.DateTimeField(blank=True, null=True)
@@ -75,7 +76,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['full_name']
 
-    objects = UserManager()
+    # Managers
+    objects = SoftDeleteManager()
+    all_objects = models.Manager()
 
     class Meta:
         db_table = 'users'

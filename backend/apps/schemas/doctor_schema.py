@@ -17,7 +17,7 @@ class DoctorSerializer(serializers.ModelSerializer):
             'available_days', 'available_time_start', 'available_time_end',
             'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'is_verified']
 
 
 class CreateDoctorSerializer(serializers.ModelSerializer):
