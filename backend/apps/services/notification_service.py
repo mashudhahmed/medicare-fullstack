@@ -1,45 +1,55 @@
 from django.core.mail import send_mail
 from django.conf import settings
-import logging
+from django.template.loader import render_to_string
 
-logger = logging.getLogger(__name__)
 
 class NotificationService:
-    
     @staticmethod
-    def send_email(subject, message, recipient_list):
-        """Send email notification."""
+    def send_email(to_email, subject, template_name, context):
+        """Send email using Django's email backend"""
         try:
+            html_message = render_to_string(template_name, context)
             send_mail(
-                subject,
-                message,
-                settings.DEFAULT_FROM_EMAIL,
-                recipient_list,
+                subject=subject,
+                message='',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[to_email],
+                html_message=html_message,
                 fail_silently=False,
             )
             return True
         except Exception as e:
-            logger.error(f"Failed to send email: {str(e)}")
+            print(f"Failed to send email: {e}")
             return False
-    
+
     @staticmethod
     def send_appointment_confirmation(appointment):
-        """Send appointment confirmation email."""
-        subject = f"Appointment Confirmation - {appointment.date}"
-        message = f"""
-        Dear {appointment.patient.user.get_full_name()},
-        
-        Your appointment has been confirmed:
-        
-        Doctor: Dr. {appointment.doctor.user.get_full_name()}
-        Date: {appointment.date}
-        Time: {appointment.start_time}
-        Mode: {appointment.get_mode_display()}
-        
-        Thank you for choosing MediCare Hub.
-        """
+        """Send appointment confirmation email"""
+        context = {
+            'patient_name': appointment.patient.user.full_name,
+            'doctor_name': appointment.doctor.user.full_name,
+            'appointment_date': appointment.appointment_date,
+            'appointment_id': appointment.id,
+        }
         return NotificationService.send_email(
-            subject,
-            message,
-            [appointment.patient.user.email]
+            to_email=appointment.patient.user.email,
+            subject='Appointment Confirmation',
+            template_name='emails/appointment_confirmation.html',
+            context=context
+        )
+
+    @staticmethod
+    def send_appointment_reminder(appointment):
+        """Send appointment reminder email"""
+        context = {
+            'patient_name': appointment.patient.user.full_name,
+            'doctor_name': appointment.doctor.user.full_name,
+            'appointment_date': appointment.appointment_date,
+            'appointment_id': appointment.id,
+        }
+        return NotificationService.send_email(
+            to_email=appointment.patient.user.email,
+            subject='Appointment Reminder',
+            template_name='emails/appointment_reminder.html',
+            context=context
         )

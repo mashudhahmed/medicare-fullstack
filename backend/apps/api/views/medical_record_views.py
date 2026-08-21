@@ -1,81 +1,73 @@
-from rest_framework import generics, permissions
-from apps.models.models import MedicalRecord, Prescription
-from apps.schemas import MedicalRecordSerializer, PrescriptionSerializer
+from rest_framework import generics, permissions, status
+from rest_framework.response import Response
+from apps.models.medical_record import MedicalRecord
+from apps.schemas.medical_record_schema import MedicalRecordSerializer, CreateMedicalRecordSerializer
+from apps.core.permissions import IsAdmin, IsDoctor
 
-class MedicalRecordListCreateView(generics.ListCreateAPIView):
-    serializer_class = MedicalRecordSerializer
+
+class ListCreateMedicalRecordsView(generics.ListCreateAPIView):
+    """List all medical records or create new"""
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get_queryset(self):
         user = self.request.user
-        if user.is_patient:
-            return MedicalRecord.objects.filter(patient=user.patient_profile)
-        elif user.is_doctor:
-            return MedicalRecord.objects.filter(doctor=user.doctor_profile)
-        else:
-            return MedicalRecord.objects.all()
-    
+        if user.role == 'admin':
+            return MedicalRecord.objects.filter(is_deleted=False)
+        elif user.role == 'doctor':
+            return MedicalRecord.objects.filter(doctor__user=user, is_deleted=False)
+        elif user.role == 'patient':
+            return MedicalRecord.objects.filter(patient__user=user, is_deleted=False)
+        return MedicalRecord.objects.none()
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return CreateMedicalRecordSerializer
+        return MedicalRecordSerializer
+
     def perform_create(self, serializer):
         user = self.request.user
-        if user.is_doctor:
-            serializer.save(
-                patient_id=self.request.data.get('patient'),
-                doctor=user.doctor_profile
-            )
+        if user.role == 'doctor':
+            serializer.save(doctor=user.doctor_profile)
         else:
-            serializer.save(
-                patient=user.patient_profile,
-                doctor_id=self.request.data.get('doctor')
-            )
+            serializer.save()
+
 
 class MedicalRecordDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Get, update, delete medical record"""
+    permission_classes = [permissions.IsAuthenticated]
     serializer_class = MedicalRecordSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    
-    def get_queryset(self):
-        user = self.request.user
-        if user.is_patient:
-            return MedicalRecord.objects.filter(patient=user.patient_profile)
-        elif user.is_doctor:
-            return MedicalRecord.objects.filter(doctor=user.doctor_profile)
-        else:
-            return MedicalRecord.objects.all()
+    queryset = MedicalRecord.objects.filter(is_deleted=False)
 
-class PrescriptionListCreateView(generics.ListCreateAPIView):
-    serializer_class = PrescriptionSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    
-    def get_queryset(self):
-        user = self.request.user
-        if user.is_patient:
-            return Prescription.objects.filter(patient=user.patient_profile)
-        elif user.is_doctor:
-            return Prescription.objects.filter(doctor=user.doctor_profile)
-        else:
-            return Prescription.objects.all()
-    
-    def perform_create(self, serializer):
-        user = self.request.user
-        if user.is_doctor:
-            serializer.save(
-                patient_id=self.request.data.get('patient'),
-                doctor=user.doctor_profile
-            )
-        else:
-            serializer.save(
-                patient=user.patient_profile,
-                doctor_id=self.request.data.get('doctor')
-            )
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.soft_delete()
+        return Response({
+            'message': 'Medical record deleted successfully'
+        }, status=status.HTTP_200_OK)
 
-class PrescriptionDetailView(generics.RetrieveUpdateDestroyAPIView):
-    serializer_class = PrescriptionSerializer
+
+class MyMedicalRecordsView(generics.ListAPIView):
+    """Get current user's medical records"""
     permission_classes = [permissions.IsAuthenticated]
-    
+    serializer_class = MedicalRecordSerializer
+
     def get_queryset(self):
         user = self.request.user
-        if user.is_patient:
-            return Prescription.objects.filter(patient=user.patient_profile)
-        elif user.is_doctor:
-            return Prescription.objects.filter(doctor=user.doctor_profile)
-        else:
-            return Prescription.objects.all()
+        if user.role == 'patient':
+            return MedicalRecord.objects.filter(patient__user=user, is_deleted=False)
+        elif user.role == 'doctor':
+            return MedicalRecord.objects.filter(doctor__user=user, is_deleted=False)
+        return MedicalRecord.objects.none()
+
+
+class PatientMedicalRecordsView(generics.ListAPIView):
+    """Get medical records for a specific patient (Doctor/Admin only)"""
+    permission_classes = [permissions.IsAuthenticated, IsDoctor | IsAdmin]
+    serializer_class = MedicalRecordSerializer
+
+    def get_queryset(self):
+        patient_id = self.kwargs.get('patient_id')
+        return MedicalRecord.objects.filter(
+            patient_id=patient_id,
+            is_deleted=False
+        )

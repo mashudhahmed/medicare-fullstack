@@ -1,48 +1,54 @@
-from django.urls import path
-from .views import *
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import auth_views
+from .views import admin_views, patient_views, doctor_views, appointment_views, billing_views, medical_record_views
+
+app_name = 'api'
+
+# Router for ViewSets (if any)
+# router = DefaultRouter()
+# router.register('patients', patient_views.PatientViewSet)
 
 urlpatterns = [
     # Authentication
-    path('auth/register/', RegisterView.as_view(), name='register'),
-    path('auth/login/', LoginView.as_view(), name='login'),
-    path('auth/logout/', LogoutView.as_view(), name='logout'),
-    path('auth/profile/', ProfileView.as_view(), name='profile'),
-    
-    # Patient
-    path('patient/profile/', PatientProfileView.as_view(), name='patient-profile'),
-    
-    # Doctor
-    path('doctors/', DoctorListView.as_view(), name='doctor-list'),
-    path('doctors/<int:pk>/', DoctorDetailView.as_view(), name='doctor-detail'),
-    path('doctor/profile/', DoctorProfileView.as_view(), name='doctor-profile'),
-    path('doctor/availability/', DoctorAvailabilityView.as_view(), name='doctor-availability'),
-    path('doctor/availability/<int:pk>/', DoctorAvailabilityDetailView.as_view(), name='doctor-availability-detail'),
-    
-    # Appointment
-    path('appointments/', AppointmentListCreateView.as_view(), name='appointment-list'),
-    path('appointments/<int:pk>/', AppointmentDetailView.as_view(), name='appointment-detail'),
-    path('appointments/<int:pk>/cancel/', AppointmentCancelView.as_view(), name='appointment-cancel'),
-    path('appointments/available-slots/<int:doctor_id>/', AvailableSlotsView.as_view(), name='available-slots'),
-    
-    # Medical Records
-    path('medical-records/', MedicalRecordListCreateView.as_view(), name='medical-record-list'),
-    path('medical-records/<int:pk>/', MedicalRecordDetailView.as_view(), name='medical-record-detail'),
-    path('prescriptions/', PrescriptionListCreateView.as_view(), name='prescription-list'),
-    path('prescriptions/<int:pk>/', PrescriptionDetailView.as_view(), name='prescription-detail'),
-    
-    # Billing
-    path('invoices/', InvoiceListCreateView.as_view(), name='invoice-list'),
-    path('invoices/<int:pk>/', InvoiceDetailView.as_view(), name='invoice-detail'),
-    path('payments/', PaymentListCreateView.as_view(), name='payment-list'),
-    path('payments/<int:pk>/', PaymentDetailView.as_view(), name='payment-detail'),
-    
+    path('auth/register/', auth_views.RegisterView.as_view(), name='register'),
+    path('auth/login/', auth_views.LoginView.as_view(), name='login'),
+    path('auth/logout/', auth_views.LogoutView.as_view(), name='logout'),
+    path('auth/profile/', auth_views.ProfileView.as_view(), name='profile'),
+    path('auth/change-password/', auth_views.ChangePasswordView.as_view(), name='change-password'),
+    path('auth/refresh-token/', auth_views.RefreshTokenView.as_view(), name='refresh-token'),
+    path('auth/status/', auth_views.UserStatusView.as_view(), name='auth-status'),
+
     # Admin
-    path('admin/dashboard/', AdminDashboardView.as_view(), name='admin-dashboard'),
-    path('admin/users/', AdminUserListView.as_view(), name='admin-users'),
-    path('admin/users/<int:pk>/', AdminUserDetailView.as_view(), name='admin-user-detail'),
-    path('admin/doctors/pending/', AdminPendingDoctorsView.as_view(), name='admin-pending-doctors'),
-    path('admin/doctors/<int:doctor_id>/approve/', AdminDoctorApprovalView.as_view(), name='admin-approve-doctor'),
-    path('admin/logs/', AdminSystemLogsView.as_view(), name='admin-logs'),
-    path('admin/settings/', AdminSystemSettingsView.as_view(), name='admin-settings'),
-    path('admin/reports/', AdminReportView.as_view(), name='admin-reports'),
+    path('admin/users/', admin_views.ListUsersView.as_view(), name='admin-users'),
+    path('admin/users/<uuid:pk>/', admin_views.UserDetailView.as_view(), name='admin-user-detail'),
+    path('admin/users/<uuid:user_id>/status/', admin_views.UpdateUserStatusView.as_view(), name='admin-user-status'),
+
+    # Patients
+    path('patients/', patient_views.ListPatientsView.as_view(), name='patient-list'),
+    path('patients/<uuid:pk>/', patient_views.PatientDetailView.as_view(), name='patient-detail'),
+    path('patients/me/', patient_views.MyPatientProfileView.as_view(), name='my-patient-profile'),
+
+    # Doctors
+    path('doctors/', doctor_views.ListDoctorsView.as_view(), name='doctor-list'),
+    path('doctors/<uuid:pk>/', doctor_views.DoctorDetailView.as_view(), name='doctor-detail'),
+    path('doctors/me/', doctor_views.MyDoctorProfileView.as_view(), name='my-doctor-profile'),
+
+    # Appointments
+    path('appointments/', appointment_views.ListCreateAppointmentsView.as_view(), name='appointment-list'),
+    path('appointments/<uuid:pk>/', appointment_views.AppointmentDetailView.as_view(), name='appointment-detail'),
+    path('appointments/<uuid:pk>/cancel/', appointment_views.CancelAppointmentView.as_view(), name='appointment-cancel'),
+    path('appointments/my/', appointment_views.MyAppointmentsView.as_view(), name='my-appointments'),
+
+    # Billing
+    path('billing/', billing_views.ListCreateBillingView.as_view(), name='billing-list'),
+    path('billing/<uuid:pk>/', billing_views.BillingDetailView.as_view(), name='billing-detail'),
+    path('billing/my/', billing_views.MyBillingView.as_view(), name='my-billing'),
+    path('billing/<uuid:pk>/pay/', billing_views.PayBillingView.as_view(), name='billing-pay'),
+
+    # Medical Records
+    path('medical-records/', medical_record_views.ListCreateMedicalRecordsView.as_view(), name='medical-record-list'),
+    path('medical-records/<uuid:pk>/', medical_record_views.MedicalRecordDetailView.as_view(), name='medical-record-detail'),
+    path('medical-records/my/', medical_record_views.MyMedicalRecordsView.as_view(), name='my-medical-records'),
+    path('patients/<uuid:patient_id>/records/', medical_record_views.PatientMedicalRecordsView.as_view(), name='patient-medical-records'),
 ]

@@ -1,74 +1,50 @@
 from django.db import models
-from django.conf import settings
+from django.utils import timezone
+import uuid
 from .patient import Patient
 from .doctor import Doctor
 
+
 class MedicalRecord(models.Model):
-    RECORD_TYPES = (
-        ('visit', 'Visit Summary'),
-        ('diagnosis', 'Diagnosis'),
-        ('prescription', 'Prescription'),
-        ('lab_result', 'Lab Result'),
-        ('imaging', 'Imaging'),
-        ('surgery', 'Surgery'),
-        ('vaccination', 'Vaccination'),
-        ('allergy', 'Allergy'),
-        ('note', 'Note'),
-    )
-    
+    class RecordType(models.TextChoices):
+        DIAGNOSIS = 'diagnosis', 'Diagnosis'
+        PRESCRIPTION = 'prescription', 'Prescription'
+        TEST_RESULT = 'test_result', 'Test Result'
+        VACCINATION = 'vaccination', 'Vaccination'
+        SURGERY = 'surgery', 'Surgery'
+        OTHER = 'other', 'Other'
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='medical_records')
     doctor = models.ForeignKey(Doctor, on_delete=models.SET_NULL, null=True, related_name='medical_records')
-    record_type = models.CharField(max_length=20, choices=RECORD_TYPES)
-    title = models.CharField(max_length=200)
+
+    record_type = models.CharField(max_length=20, choices=RecordType.choices)
+    title = models.CharField(max_length=255)
     description = models.TextField()
     details = models.JSONField(default=dict, blank=True)
-    date = models.DateField()
     attachments = models.JSONField(default=list, blank=True)
-    is_private = models.BooleanField(default=False)
+
+    record_date = models.DateField()
+    is_confidential = models.BooleanField(default=False)
+
+    is_deleted = models.BooleanField(default=False, db_index=True)
+    deleted_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         db_table = 'medical_records'
         indexes = [
             models.Index(fields=['patient', 'record_type']),
-            models.Index(fields=['patient', 'date']),
+            models.Index(fields=['record_date']),
+            models.Index(fields=['is_deleted']),
         ]
-        ordering = ['-date', '-created_at']
-    
-    def __str__(self):
-        return f"{self.patient.user.get_full_name()} - {self.title} ({self.record_type})"
+        ordering = ['-record_date']
 
-class Prescription(models.Model):
-    STATUS_CHOICES = (
-        ('active', 'Active'),
-        ('completed', 'Completed'),
-        ('cancelled', 'Cancelled'),
-        ('expired', 'Expired'),
-    )
-    
-    medical_record = models.ForeignKey(MedicalRecord, on_delete=models.CASCADE, related_name='prescriptions')
-    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='prescriptions')
-    doctor = models.ForeignKey(Doctor, on_delete=models.SET_NULL, null=True, related_name='prescriptions')
-    medication = models.CharField(max_length=200)
-    dosage = models.CharField(max_length=100)
-    frequency = models.CharField(max_length=100)
-    duration = models.CharField(max_length=100)
-    instructions = models.TextField(blank=True)
-    start_date = models.DateField()
-    end_date = models.DateField(null=True, blank=True)
-    is_refillable = models.BooleanField(default=False)
-    refills_remaining = models.IntegerField(default=0)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    class Meta:
-        db_table = 'prescriptions'
-        indexes = [
-            models.Index(fields=['patient', 'status']),
-            models.Index(fields=['doctor', 'status']),
-        ]
-    
     def __str__(self):
-        return f"{self.medication} - {self.patient.user.get_full_name()}"
+        return f"{self.record_type}: {self.title} - {self.patient.user.full_name}"
+
+    def soft_delete(self):
+        self.is_deleted = True
+        self.deleted_at = timezone.now()
+        self.save()

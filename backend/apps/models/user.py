@@ -1,52 +1,114 @@
-from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.utils import timezone
+import uuid
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 
-class User(AbstractUser):
-    ROLE_CHOICES = (
-        ('patient', 'Patient'),
-        ('doctor', 'Doctor'),
-        ('admin', 'Administrator'),
-    )
-    
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='patient')
-    phone = models.CharField(max_length=15, blank=True, null=True)
-    date_of_birth = models.DateField(null=True, blank=True)
-    address = models.TextField(blank=True)
-    profile_picture = models.ImageField(upload_to='profiles/', null=True, blank=True)
-    is_verified = models.BooleanField(default=False)
-    email_verified = models.BooleanField(default=False)
-    phone_verified = models.BooleanField(default=False)
-    last_login_ip = models.GenericIPAddressField(null=True, blank=True)
+class UserManager(BaseUserManager):
+
+    def _create_user(self, email, password, **extra_fields):
+        if not email:
+            raise ValueError('Email is required')
+
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.id = uuid.uuid4()
+        user.save(using=self._db)
+        return user
+
+    def create_user(self, email, password=None, **extra_fields):
+        extra_fields.setdefault('is_active', True)
+        extra_fields.setdefault('is_staff', False)
+        extra_fields.setdefault('is_superuser', False)
+        return self._create_user(email, password, **extra_fields)
+
+    def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault('is_active', True)
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('role', 'admin')
+
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser must have is_superuser=True.')
+
+        return self._create_user(email, password, **extra_fields)
+
+
+class User(AbstractBaseUser, PermissionsMixin):
+    class Role(models.TextChoices):
+        PATIENT = 'patient', 'Patient'
+        DOCTOR = 'doctor', 'Doctor'
+        ADMIN = 'admin', 'Administrator'
+
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'Pending'
+        APPROVED = 'approved', 'Approved'
+        REJECTED = 'rejected', 'Rejected'
+        SUSPENDED = 'suspended', 'Suspended'
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    email = models.EmailField(unique=True, db_index=True)
+    full_name = models.CharField(max_length=255)
+    phone = models.CharField(max_length=20, unique=True, db_index=True, null=True, blank=True)
+    address = models.TextField(blank=True, null=True)
+
+    profile_picture = models.URLField(blank=True, null=True)
+    profile_picture_public_id = models.CharField(max_length=255, blank=True, null=True)
+
+    role = models.CharField(max_length=20, choices=Role.choices, default=Role.PATIENT, db_index=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.APPROVED, db_index=True)
+
+    is_deleted = models.BooleanField(default=False, db_index=True)
+    deleted_at = models.DateTimeField(blank=True, null=True)
+
+    last_login = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
     is_active = models.BooleanField(default=True)
-    deleted_at = models.DateTimeField(null=True, blank=True)
-    
+    is_staff = models.BooleanField(default=False)
+    is_superuser = models.BooleanField(default=False)
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['full_name']
+
+    objects = UserManager()
+
     class Meta:
         db_table = 'users'
         indexes = [
-            models.Index(fields=['email']),
-            models.Index(fields=['role']),
-            models.Index(fields=['is_active']),
+            models.Index(fields=['email', 'status']),
+            models.Index(fields=['role', 'status']),
+            models.Index(fields=['is_deleted']),
         ]
-    
+        ordering = ['-created_at']
+
     def __str__(self):
-        return f"{self.username} ({self.role})"
-    
+        return self.email
+
     def soft_delete(self):
-        self.is_active = False
+        self.is_deleted = True
         self.deleted_at = timezone.now()
+        self.is_active = False
         self.save()
-    
+
+    def restore(self):
+        self.is_deleted = False
+        self.deleted_at = None
+        self.is_active = True
+        self.save()
+
     @property
     def is_patient(self):
         return self.role == 'patient'
-    
+
     @property
     def is_doctor(self):
         return self.role == 'doctor'
-    
+
     @property
-    def is_admin_user(self):
+    def is_admin(self):
         return self.role == 'admin'

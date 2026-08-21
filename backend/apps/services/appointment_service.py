@@ -1,42 +1,86 @@
-from datetime import datetime, timedelta
+from django.db import models
 from django.utils import timezone
-from apps.models.models import Appointment, DoctorAvailability
+from apps.models.appointment import Appointment
+from apps.models.patient import Patient
+from apps.models.doctor import Doctor
+
 
 class AppointmentService:
-    
     @staticmethod
-    def get_available_slots(doctor_id, date_str):
-        """Get available slots for a doctor on a given date."""
+    def check_availability(doctor_id, appointment_date, duration_minutes=30):
+        """Check if a doctor is available at a given time"""
+        end_time = appointment_date + timezone.timedelta(minutes=duration_minutes)
+
+        overlapping = Appointment.objects.filter(
+            doctor_id=doctor_id,
+            appointment_date__lt=end_time,
+            appointment_date__gt=appointment_date - timezone.timedelta(minutes=duration_minutes),
+            status__in=['pending', 'confirmed', 'in_progress'],
+            is_deleted=False
+        ).exists()
+
+        return not overlapping
+
+    @staticmethod
+    def get_upcoming_appointments(user, days_ahead=7):
+        """Get upcoming appointments for a user"""
+        now = timezone.now()
+        future = now + timezone.timedelta(days=days_ahead)
+
+        if user.role == 'patient':
+            return Appointment.objects.filter(
+                patient__user=user,
+                appointment_date__gte=now,
+                appointment_date__lte=future,
+                status__in=['pending', 'confirmed'],
+                is_deleted=False
+            ).order_by('appointment_date')
+        elif user.role == 'doctor':
+            return Appointment.objects.filter(
+                doctor__user=user,
+                appointment_date__gte=now,
+                appointment_date__lte=future,
+                status__in=['pending', 'confirmed'],
+                is_deleted=False
+            ).order_by('appointment_date')
+        return Appointment.objects.none()
+
+    @staticmethod
+    def cancel_appointment(appointment_id, user):
+        """Cancel an appointment"""
         try:
-            date = datetime.strptime(date_str, '%Y-%m-%d').date()
-            day = date.weekday()
-            
-            doctor = DoctorAvailability.objects.filter(
-                doctor_id=doctor_id,
-                day=day,
-                is_active=True
-            )
-            
-            if not doctor.exists():
-                return []
-            
-            slots = []
-            for availability in doctor:
-                current = availability.start_time
-                while current < availability.end_time:
-                    is_booked = Appointment.objects.filter(
-                        doctor_id=doctor_id,
-                        date=date,
-                        start_time=current,
-                        status__in=['pending', 'confirmed', 'in_progress']
-                    ).exists()
-                    
-                    if not is_booked:
-                        slots.append(current.strftime('%H:%M'))
-                    
-                    current = (datetime.combine(datetime.today(), current) + 
-                              timedelta(minutes=availability.slot_duration)).time()
-            
-            return slots
-        except Exception as e:
-            return []
+            appointment = Appointment.objects.get(id=appointment_id, is_deleted=False)
+        except Appointment.DoesNotExist:
+            return None, "Appointment not found"
+
+        if user.role not in ['patient', 'doctor', 'admin']:
+            return None, "You cannot cancel this appointment"
+
+        if appointment.status in ['completed', 'cancelled', 'no_show']:
+            return None, f"Cannot cancel appointment with status: {appointment.status}"
+
+        appointment.status = 'cancelled'
+        appointment.save()
+        return appointment, None
+
+    @staticmethod
+    def get_appointment_stats(doctor_id=None):
+        """Get appointment statistics"""
+        queryset = Appointment.objects.filter(is_deleted=False)
+
+        if doctor_id:
+            queryset = queryset.filter(doctor_id=doctor_id)
+
+        total = queryset.count()
+        pending = queryset.filter(status='pending').count()
+        confirmed = queryset.filter(status='confirmed').count()
+        completed = queryset.filter(status='completed').count()
+        cancelled = queryset.filter(status='cancelled').count()
+
+        return {
+            'total': total,
+            'pending': pending,
+            'confirmed': confirmed,
+            'completed': completed,
+            'cancelled': cancelled,
+        }
