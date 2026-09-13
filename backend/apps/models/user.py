@@ -41,6 +41,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
 
+    # Two-Factor Authentication (TOTP)
+    totp_secret = models.CharField(max_length=64, blank=True, null=True)
+    two_factor_enabled = models.BooleanField(default=False)
+
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['full_name']
 

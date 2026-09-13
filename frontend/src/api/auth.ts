@@ -66,6 +66,37 @@ export const authApi = {
     const { data } = await api.post(ENDPOINTS.AUTH.PASSWORD_RESET_CONFIRM, payload);
     return data;
   },
+
+  verify2FA: async (payload: { temp_token: string; code: string }): Promise<LoginResponse> => {
+    const { data } = await api.post(ENDPOINTS.AUTH.TWO_FACTOR_VERIFY, payload);
+    return data;
+  },
+
+  setup2FA: async (): Promise<{
+    secret: string;
+    qr_code: string;
+    email: string;
+    provisioning_uri: string;
+    is_enabled: boolean;
+  }> => {
+    const { data } = await api.get(ENDPOINTS.AUTH.TWO_FACTOR_SETUP);
+    return data;
+  },
+
+  enable2FA: async (payload: {
+    secret: string;
+    code: string;
+  }): Promise<{ message: string; two_factor_enabled: boolean }> => {
+    const { data } = await api.post(ENDPOINTS.AUTH.TWO_FACTOR_ENABLE, payload);
+    return data;
+  },
+
+  disable2FA: async (payload: {
+    code: string;
+  }): Promise<{ message: string; two_factor_enabled: boolean }> => {
+    const { data } = await api.post(ENDPOINTS.AUTH.TWO_FACTOR_DISABLE, payload);
+    return data;
+  },
 };
 
 export default authApi;

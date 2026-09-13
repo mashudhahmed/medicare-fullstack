@@ -4,11 +4,21 @@ import { User, LoginData, RegisterData } from '../types';
 import { extractErrorMessage } from '../utils/helpers';
 import toast from 'react-hot-toast';
 
+export interface LoginResult {
+  success: boolean;
+  requires_2fa?: boolean;
+  temp_token?: string;
+  email?: string;
+  user?: User;
+  error?: string;
+}
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   isAuthenticated: boolean;
-  login: (credentials: LoginData) => Promise<{ success: boolean; user?: User; error?: string }>;
+  login: (credentials: LoginData) => Promise<LoginResult>;
+  verify2FA: (tempToken: string, code: string) => Promise<{ success: boolean; user?: User; error?: string }>;
   register: (data: RegisterData) => Promise<{ success: boolean; data?: unknown; error?: string }>;
   logout: () => Promise<void>;
   updateUser: (user: User) => void;
@@ -55,9 +65,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initializeAuth();
   }, []);
 
-  const login = async (credentials: LoginData) => {
+  const login = async (credentials: LoginData): Promise<LoginResult> => {
     try {
       const response = await authApi.login(credentials);
+
+      // Check if server requires 2FA verification
+      const rawRes = response as unknown as { requires_2fa?: boolean; temp_token?: string; email?: string };
+      if (rawRes.requires_2fa) {
+        return {
+          success: true,
+          requires_2fa: true,
+          temp_token: rawRes.temp_token,
+          email: rawRes.email,
+        };
+      }
+
       const { access, refresh, user } = response;
 
       localStorage.setItem('access_token', access);
@@ -69,6 +91,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return { success: true, user };
     } catch (error: unknown) {
       const message = extractErrorMessage(error, 'Login failed');
+      return { success: false, error: message };
+    }
+  };
+
+  const verify2FA = async (tempToken: string, code: string) => {
+    try {
+      const response = await authApi.verify2FA({ temp_token: tempToken, code });
+      const { access, refresh, user } = response;
+
+      localStorage.setItem('access_token', access);
+      localStorage.setItem('refresh_token', refresh);
+      localStorage.setItem('user', JSON.stringify(user));
+
+      setUser(user);
+      setIsAuthenticated(true);
+      return { success: true, user };
+    } catch (error: unknown) {
+      const message = extractErrorMessage(error, 'Invalid 2FA verification code');
       return { success: false, error: message };
     }
   };
@@ -108,7 +148,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, isAuthenticated, login, register, logout, updateUser }}
+      value={{ user, loading, isAuthenticated, login, verify2FA, register, logout, updateUser }}
     >
       {children}
     </AuthContext.Provider>

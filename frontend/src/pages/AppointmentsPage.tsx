@@ -28,6 +28,12 @@ const AppointmentsPage: React.FC = () => {
     reason: '',
     notes: '',
   });
+  const [selectedDate, setSelectedDate] = useState<string>(
+    new Date().toISOString().split('T')[0]
+  );
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [slotsFetched, setSlotsFetched] = useState(false);
 
   const fetchAppointments = useCallback(async () => {
     try {
@@ -59,8 +65,39 @@ const AppointmentsPage: React.FC = () => {
     loadData();
   }, [fetchAppointments, fetchDoctors, user?.role]);
 
+  useEffect(() => {
+    const fetchSlots = async () => {
+      if (!formData.doctor || !selectedDate) {
+        setAvailableSlots([]);
+        setSlotsFetched(false);
+        return;
+      }
+      setLoadingSlots(true);
+      try {
+        const res = await appointmentsApi.getAvailableSlots(formData.doctor, {
+          date: selectedDate,
+        });
+        setAvailableSlots(res?.slots || []);
+        setSlotsFetched(true);
+      } catch {
+        setAvailableSlots([]);
+        setSlotsFetched(true);
+      } finally {
+        setLoadingSlots(false);
+      }
+    };
+
+    if (showModal && formData.doctor && selectedDate) {
+      fetchSlots();
+    }
+  }, [formData.doctor, selectedDate, showModal]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.appointment_date) {
+      toast.error('Please select an appointment time slot');
+      return;
+    }
     try {
       await appointmentsApi.create({ ...formData });
       setShowModal(false);
@@ -68,8 +105,11 @@ const AppointmentsPage: React.FC = () => {
       toast.success('Appointment booked successfully!');
       await fetchAppointments();
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { error?: string } } };
-      toast.error(err.response?.data?.error || 'Failed to book appointment');
+      const message =
+        typeof error === 'object' && error !== null && 'response' in error
+          ? (error as { response?: { data?: { error?: string } } }).response?.data?.error
+          : undefined;
+      toast.error(message || 'Failed to book appointment');
     }
   };
 
@@ -198,16 +238,68 @@ const AppointmentsPage: React.FC = () => {
             </select>
           </div>
           <div>
-            <label className="label">Date & Time</label>
+            <label className="label">Appointment Date</label>
             <input
-              type="datetime-local"
+              type="date"
+              min={new Date().toISOString().split('T')[0]}
               className="input-field"
-              value={formData.appointment_date}
-              onChange={(e) =>
-                setFormData({ ...formData, appointment_date: e.target.value })
-              }
+              value={selectedDate}
+              onChange={(e) => {
+                setSelectedDate(e.target.value);
+                setFormData({ ...formData, appointment_date: '' });
+              }}
               required
             />
+          </div>
+
+          <div>
+            <label className="label flex items-center justify-between">
+              <span>Available Time Slots</span>
+              {formData.appointment_date && (
+                <span className="text-xs font-semibold text-medicare-primary">
+                  Selected: {new Date(formData.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              )}
+            </label>
+
+            {!formData.doctor ? (
+              <p className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
+                Please choose a doctor above to check available consultation slots.
+              </p>
+            ) : loadingSlots ? (
+              <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg flex items-center gap-2">
+                <div className="w-3 h-3 border-2 border-medicare-primary border-t-transparent rounded-full animate-spin" />
+                Checking doctor schedule & available slots...
+              </div>
+            ) : availableSlots.length > 0 ? (
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-40 overflow-y-auto p-1 bg-gray-50 rounded-lg">
+                {availableSlots.map((slot) => {
+                  const isSelected = formData.appointment_date === slot;
+                  const timeLabel = new Date(slot).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  });
+                  return (
+                    <button
+                      type="button"
+                      key={slot}
+                      onClick={() => setFormData({ ...formData, appointment_date: slot })}
+                      className={`text-xs py-2 px-1 rounded-md font-medium text-center transition ${
+                        isSelected
+                          ? 'bg-medicare-primary text-white shadow-sm'
+                          : 'bg-white text-gray-700 hover:bg-teal-50 hover:text-medicare-primary border border-gray-200'
+                      }`}
+                    >
+                      {timeLabel}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : slotsFetched ? (
+              <p className="text-xs text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200">
+                No slots available on this date. Doctor may not practice on this day or all slots are booked. Please select another date.
+              </p>
+            ) : null}
           </div>
           <div>
             <label className="label">Reason</label>

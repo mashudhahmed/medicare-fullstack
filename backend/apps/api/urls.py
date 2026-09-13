@@ -19,6 +19,11 @@ urlpatterns = [
     # Password Reset
     path('auth/password-reset/', auth_views.PasswordResetRequestView.as_view(), name='password-reset'),
     path('auth/password-reset/confirm/', auth_views.PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
+    # Two-Factor Authentication (TOTP)
+    path('auth/2fa/verify/', auth_views.TwoFactorVerifyView.as_view(), name='2fa-verify'),
+    path('auth/2fa/setup/', auth_views.TwoFactorSetupView.as_view(), name='2fa-setup'),
+    path('auth/2fa/enable/', auth_views.TwoFactorEnableView.as_view(), name='2fa-enable'),
+    path('auth/2fa/disable/', auth_views.TwoFactorDisableView.as_view(), name='2fa-disable'),
 
     # Admin
     path('admin/dashboard/', admin_views.AdminDashboardView.as_view(), name='admin-dashboard'),

@@ -8,6 +8,7 @@ export interface User {
   profile_picture?: string;
   role: 'patient' | 'doctor' | 'admin';
   status: 'pending' | 'approved' | 'rejected' | 'suspended';
+  two_factor_enabled?: boolean;
   last_login?: string;
   created_at: string;
   updated_at: string;
@@ -207,3 +208,71 @@ export interface ApiError {
   message?: string;
   errors?: Record<string, string[]>;
 }
+
+// 2FA Types
+export interface TwoFactorSetupResponse {
+  secret: string;
+  qr_code: string;
+  email: string;
+  provisioning_uri: string;
+  is_enabled: boolean;
+}
+
+export interface TwoFactorVerifyData {
+  temp_token: string;
+  code: string;
+}
+
+// Prescription Types
+export interface Prescription {
+  id: string;
+  appointment?: string;
+  patient: string;
+  patient_name?: string;
+  doctor: string;
+  doctor_name?: string;
+  doctor_specialty?: string;
+  patient_details?: Patient;
+  doctor_details?: Doctor;
+  medication_name: string;
+  dosage: string;
+  frequency: string;
+  duration_days?: number;
+  duration?: string;
+  instructions?: string;
+  refills_allowed: number;
+  refills_used: number;
+  can_refill?: boolean;
+  status: 'active' | 'completed' | 'cancelled';
+  valid_until?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreatePrescriptionData {
+  appointment?: string;
+  patient: string;
+  medication_name: string;
+  dosage: string;
+  frequency: string;
+  duration_days?: number;
+  instructions?: string;
+  refills_allowed?: number;
+}
+
+// Audit Log Types
+export interface AuditLog {
+  id: string;
+  user?: string;
+  user_email?: string;
+  user_role?: string;
+  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'VIEW' | string;
+  resource_type: string;
+  resource_id?: string;
+  ip_address?: string;
+  user_agent?: string;
+  details?: Record<string, unknown>;
+  timestamp: string;
+}
+
+

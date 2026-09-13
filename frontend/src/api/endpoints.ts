@@ -9,6 +9,10 @@ export const ENDPOINTS = {
     REFRESH_TOKEN: '/auth/refresh-token/',
     PASSWORD_RESET: '/auth/password-reset/',
     PASSWORD_RESET_CONFIRM: '/auth/password-reset/confirm/',
+    TWO_FACTOR_VERIFY: '/auth/2fa/verify/',
+    TWO_FACTOR_SETUP: '/auth/2fa/setup/',
+    TWO_FACTOR_ENABLE: '/auth/2fa/enable/',
+    TWO_FACTOR_DISABLE: '/auth/2fa/disable/',
   },
   PATIENTS: {
     LIST: '/patients/',

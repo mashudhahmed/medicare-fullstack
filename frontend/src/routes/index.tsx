@@ -20,6 +20,9 @@ import NotificationsPage from '../pages/NotificationsPage';
 import AdminDashboard from '../pages/AdminDashboard';
 import AdminUsersPage from '../pages/AdminUsersPage';
 import AdminDoctorsPage from '../pages/AdminDoctorsPage';
+import AdminAuditLogsPage from '../pages/AdminAuditLogsPage';
+import PrescriptionsPage from '../pages/PrescriptionsPage';
+import DoctorSchedulePage from '../pages/DoctorSchedulePage';
 import NotFoundPage from '../pages/NotFoundPage';
 import { useAuth } from '../context/AuthContext';
 
@@ -55,6 +58,15 @@ const AppRoutes: React.FC = () => (
       <Route path="/appointments/:id" element={<AppointmentDetailPage />} />
       <Route path="/medical-records" element={<MedicalRecordsPage />} />
       <Route path="/notifications" element={<NotificationsPage />} />
+      <Route path="/prescriptions" element={<PrescriptionsPage />} />
+      <Route
+        path="/doctor/schedule"
+        element={
+          <PrivateRoute roles={['doctor']}>
+            <DoctorSchedulePage />
+          </PrivateRoute>
+        }
+      />
       <Route
         path="/patients"
         element={
@@ -100,6 +112,14 @@ const AppRoutes: React.FC = () => (
         element={
           <PrivateRoute roles={['admin']}>
             <AdminDoctorsPage />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/admin/audit-logs"
+        element={
+          <PrivateRoute roles={['admin']}>
+            <AdminAuditLogsPage />
           </PrivateRoute>
         }
       />

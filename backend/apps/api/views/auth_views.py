@@ -49,6 +49,17 @@ class LoginView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
 
         user = serializer.validated_data['user']
+        if user.two_factor_enabled and user.totp_secret:
+            from django.core.signing import TimestampSigner
+            signer = TimestampSigner()
+            temp_token = signer.sign(str(user.id))
+            return Response({
+                'requires_2fa': True,
+                'temp_token': temp_token,
+                'email': user.email,
+                'message': 'Two-factor authentication code required'
+            }, status=status.HTTP_200_OK)
+
         refresh = RefreshToken.for_user(user)
 
         return Response({
@@ -227,3 +238,184 @@ class PasswordResetConfirmView(generics.GenericAPIView):
         )
 
         return Response({"message": "Password has been reset successfully."})
+
+
+@method_decorator(ratelimit(key='ip', rate='5/m', method='POST', block=True), name='post')
+class TwoFactorVerifyView(APIView):
+    """Verify 6-digit TOTP code during login challenge"""
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        temp_token = request.data.get('temp_token')
+        code = str(request.data.get('code', '')).strip()
+
+        if not temp_token or not code:
+            return Response(
+                {'error': 'Temporary 2FA token and 6-digit code are required.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        from django.core.signing import TimestampSigner, BadSignature, SignatureExpired
+        signer = TimestampSigner()
+        try:
+            user_id = signer.unsign(temp_token, max_age=300)  # 5 minutes valid
+        except (BadSignature, SignatureExpired):
+            return Response(
+                {'error': '2FA verification session has expired or is invalid. Please log in again.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            user = User.objects.get(id=user_id, is_deleted=False)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if not user.totp_secret or not user.two_factor_enabled:
+            return Response(
+                {'error': 'Two-factor authentication is not active on this account.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        import pyotp
+        totp = pyotp.TOTP(user.totp_secret)
+        if not totp.verify(code, valid_window=1):
+            return Response(
+                {'error': 'Invalid 2FA verification code. Please check your authenticator app.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        refresh = RefreshToken.for_user(user)
+
+        from apps.utils.audit import log_audit
+        log_audit(
+            request=request,
+            action='LOGIN',
+            resource_type='User',
+            resource_id=str(user.id),
+            details={'method': 'totp_2fa'}
+        )
+
+        return Response({
+            'user': UserSerializer(user).data,
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+            'message': 'Two-factor verification successful.'
+        }, status=status.HTTP_200_OK)
+
+
+class TwoFactorSetupView(APIView):
+    """Generate TOTP secret and QR code for authenticator setup"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        import pyotp
+        import qrcode
+        import io
+        import base64
+
+        user = request.user
+        secret = pyotp.random_base32()
+        uri = pyotp.totp.TOTP(secret).provisioning_uri(
+            name=user.email,
+            issuer_name="MediCare Hub"
+        )
+
+        qr = qrcode.QRCode(box_size=6, border=2)
+        qr.add_data(uri)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        qr_b64 = base64.b64encode(buf.getvalue()).decode()
+        qr_data_uri = f"data:image/png;base64,{qr_b64}"
+
+        return Response({
+            'secret': secret,
+            'qr_code': qr_data_uri,
+            'email': user.email,
+            'provisioning_uri': uri,
+            'is_enabled': user.two_factor_enabled,
+        })
+
+
+class TwoFactorEnableView(APIView):
+    """Validate 6-digit code to finalize 2FA activation"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        secret = request.data.get('secret')
+        code = str(request.data.get('code', '')).strip()
+
+        if not secret or not code:
+            return Response(
+                {'error': 'Secret key and verification code are required.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        import pyotp
+        totp = pyotp.TOTP(secret)
+        if not totp.verify(code, valid_window=1):
+            return Response(
+                {'error': 'Invalid verification code. Please ensure your device clock is synchronized and try again.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user = request.user
+        user.totp_secret = secret
+        user.two_factor_enabled = True
+        user.save(update_fields=['totp_secret', 'two_factor_enabled'])
+
+        from apps.utils.audit import log_audit
+        log_audit(
+            request=request,
+            action='UPDATE',
+            resource_type='User',
+            resource_id=str(user.id),
+            details={'action': '2fa_enabled'}
+        )
+
+        return Response({
+            'message': 'Two-factor authentication has been enabled successfully.',
+            'two_factor_enabled': True,
+        }, status=status.HTTP_200_OK)
+
+
+class TwoFactorDisableView(APIView):
+    """Disable 2FA after code verification"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        code = str(request.data.get('code', '')).strip()
+        user = request.user
+
+        if not user.two_factor_enabled or not user.totp_secret:
+            return Response(
+                {'error': 'Two-factor authentication is not currently enabled.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        import pyotp
+        totp = pyotp.TOTP(user.totp_secret)
+        if not totp.verify(code, valid_window=1):
+            return Response(
+                {'error': 'Invalid verification code. Please enter the current 6-digit code from your authenticator.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user.two_factor_enabled = False
+        user.totp_secret = None
+        user.save(update_fields=['two_factor_enabled', 'totp_secret'])
+
+        from apps.utils.audit import log_audit
+        log_audit(
+            request=request,
+            action='UPDATE',
+            resource_type='User',
+            resource_id=str(user.id),
+            details={'action': '2fa_disabled'}
+        )
+
+        return Response({
+            'message': 'Two-factor authentication has been disabled.',
+            'two_factor_enabled': False,
+        }, status=status.HTTP_200_OK)

@@ -1,6 +1,6 @@
 import api from './axios';
 import { ENDPOINTS } from './endpoints';
-import type { AdminDashboardStats, User, Doctor, PaginatedResponse } from '../types';
+import type { AdminDashboardStats, User, Doctor, AuditLog, PaginatedResponse } from '../types';
 
 export const adminApi = {
   getDashboard: async (): Promise<AdminDashboardStats> => {
@@ -36,6 +36,11 @@ export const adminApi = {
   verifyDoctor: async (id: string, is_verified: boolean) => {
     const { data } = await api.patch(ENDPOINTS.ADMIN.VERIFY_DOCTOR(id), { is_verified });
     return data;
+  },
+
+  getAuditLogs: async (params?: Record<string, unknown>) => {
+    const { data } = await api.get(ENDPOINTS.AUDIT_LOGS.LIST, { params });
+    return data as PaginatedResponse<AuditLog> | AuditLog[];
   },
 };
 

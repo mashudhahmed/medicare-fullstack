@@ -14,6 +14,9 @@ import {
   FaSignOutAlt,
   FaBars,
   FaTimes,
+  FaPills,
+  FaClock,
+  FaShieldAlt,
 } from 'react-icons/fa';
 
 const navByRole: Record<string, { to: string; label: string; icon: React.ReactNode }[]> = {
@@ -21,6 +24,7 @@ const navByRole: Record<string, { to: string; label: string; icon: React.ReactNo
     { to: '/', label: 'Dashboard', icon: <FaHome /> },
     { to: '/doctors', label: 'Find Doctors', icon: <FaUserMd /> },
     { to: '/appointments', label: 'Appointments', icon: <FaCalendarAlt /> },
+    { to: '/prescriptions', label: 'Prescriptions', icon: <FaPills /> },
     { to: '/medical-records', label: 'Records', icon: <FaFileMedical /> },
     { to: '/billing', label: 'Billing', icon: <FaFileInvoiceDollar /> },
     { to: '/profile', label: 'Profile', icon: <FaCog /> },
@@ -28,6 +32,8 @@ const navByRole: Record<string, { to: string; label: string; icon: React.ReactNo
   doctor: [
     { to: '/', label: 'Dashboard', icon: <FaHome /> },
     { to: '/appointments', label: 'Appointments', icon: <FaCalendarAlt /> },
+    { to: '/doctor/schedule', label: 'My Schedule', icon: <FaClock /> },
+    { to: '/prescriptions', label: 'Prescriptions', icon: <FaPills /> },
     { to: '/patients', label: 'Patients', icon: <FaUserInjured /> },
     { to: '/medical-records', label: 'Records', icon: <FaFileMedical /> },
     { to: '/profile', label: 'Profile', icon: <FaCog /> },
@@ -38,7 +44,9 @@ const navByRole: Record<string, { to: string; label: string; icon: React.ReactNo
     { to: '/admin/doctors', label: 'Doctors', icon: <FaUserMd /> },
     { to: '/patients', label: 'Patients', icon: <FaUserInjured /> },
     { to: '/appointments', label: 'Appointments', icon: <FaCalendarAlt /> },
+    { to: '/prescriptions', label: 'Prescriptions', icon: <FaPills /> },
     { to: '/billing', label: 'Billing', icon: <FaFileInvoiceDollar /> },
+    { to: '/admin/audit-logs', label: 'Audit Logs', icon: <FaShieldAlt /> },
     { to: '/profile', label: 'Profile', icon: <FaCog /> },
   ],
 };
