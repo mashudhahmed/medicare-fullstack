@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { appointmentsApi } from '../api/appointments';
 import { Appointment } from '../types';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
+import { ConfirmModal } from '../components/ui';
 import { 
   FaCalendar, FaClock, FaStethoscope, 
   FaTimes, FaArrowLeft, FaCheckCircle, FaClock as FaClockIcon,
@@ -17,6 +18,7 @@ const AppointmentDetailPage: React.FC = () => {
   const [appointment, setAppointment] = useState<Appointment | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
   const [showVideoModal, setShowVideoModal] = useState(false);
 
   const fetchAppointment = useCallback(async () => {
@@ -39,14 +41,14 @@ const AppointmentDetailPage: React.FC = () => {
     loadAppointment();
   }, [fetchAppointment]);
 
-  const handleCancel = async () => {
+  const handleConfirmCancel = async () => {
     if (!appointment) return;
-    if (!window.confirm('Are you sure you want to cancel this appointment?')) return;
 
     setCancelling(true);
     try {
       await appointmentsApi.cancel(appointment.id);
       toast.success('Appointment cancelled');
+      setShowCancelModal(false);
       await fetchAppointment();
     } catch {
       toast.error('Failed to cancel appointment');
@@ -187,7 +189,7 @@ const AppointmentDetailPage: React.FC = () => {
             )}
             {canCancel && (
               <button
-                onClick={handleCancel}
+                onClick={() => setShowCancelModal(true)}
                 disabled={cancelling}
                 className="btn-danger flex items-center"
               >
@@ -203,6 +205,19 @@ const AppointmentDetailPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Cancel Appointment Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        onConfirm={handleConfirmCancel}
+        loading={cancelling}
+        title="Cancel Appointment"
+        message="Are you sure you want to cancel this appointment? This action cannot be undone."
+        confirmText="Yes, Cancel Appointment"
+        cancelText="Keep Appointment"
+        variant="danger"
+      />
 
       <VideoConsultationModal
         isOpen={showVideoModal}

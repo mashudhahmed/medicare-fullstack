@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { ConfirmModal } from '../components/ui';
 import {
   FaHome,
   FaUserMd,
@@ -46,10 +47,12 @@ const DashboardLayout: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const links = navByRole[user?.role || 'patient'] || navByRole.patient;
 
   const handleLogout = async () => {
     await logout();
+    setShowLogoutModal(false);
     navigate('/login');
   };
 
@@ -90,8 +93,8 @@ const DashboardLayout: React.FC = () => {
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-700">
           <div className="text-xs text-slate-400 mb-2 truncate">{user?.email}</div>
           <button
-            onClick={handleLogout}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-slate-800"
+            onClick={() => setShowLogoutModal(true)}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 transition-colors"
           >
             <FaSignOutAlt /> Logout
           </button>
@@ -120,6 +123,19 @@ const DashboardLayout: React.FC = () => {
       {open && (
         <div className="fixed inset-0 z-30 bg-black/40 md:hidden" onClick={() => setOpen(false)} />
       )}
+
+      {/* Logout Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={handleLogout}
+        title="Sign Out"
+        message="Are you sure you want to sign out of your MediCare Hub account? You will need to log back in to access your dashboard."
+        confirmText="Sign Out"
+        cancelText="Cancel"
+        variant="danger"
+        icon={<FaSignOutAlt className="w-5 h-5 text-red-600" />}
+      />
     </div>
   );
 };

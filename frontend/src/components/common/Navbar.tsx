@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { ConfirmModal } from '../ui';
 import { FaUser, FaSignOutAlt, FaBars, FaTimes, FaHome, FaCalendar, FaFileMedical, FaCreditCard, FaUserMd, FaUsers } from 'react-icons/fa';
 
 const Navbar: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const handleLogout = async () => {
     await logout();
+    setShowLogoutModal(false);
     navigate('/login');
   };
 
@@ -62,8 +65,9 @@ const Navbar: React.FC = () => {
                   <FaUser className="text-lg" />
                 </Link>
                 <button
-                  onClick={handleLogout}
+                  onClick={() => setShowLogoutModal(true)}
                   className="text-gray-700 hover:text-red-600 transition-colors"
+                  title="Log out"
                 >
                   <FaSignOutAlt className="text-lg" />
                 </button>
@@ -71,7 +75,8 @@ const Navbar: React.FC = () => {
             ) : (
               <>
                 <Link to="/login" className="text-gray-700 hover:text-medicare-teal transition-colors">
-                  Login                </Link>
+                  Login
+                </Link>
                 <Link
                   to="/register"
                   className="bg-medicare-teal text-white px-4 py-2 rounded-lg hover:bg-teal-600 transition-colors"
@@ -109,7 +114,7 @@ const Navbar: React.FC = () => {
                 <FaUser className="inline mr-2" /> Profile
               </Link>
               <button
-                onClick={() => { handleLogout(); setIsOpen(false); }}
+                onClick={() => { setShowLogoutModal(true); setIsOpen(false); }}
                 className="block w-full text-left py-2 text-red-600 hover:text-red-800"
               >
                 <FaSignOutAlt className="inline mr-2" /> Logout
@@ -118,6 +123,19 @@ const Navbar: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Logout Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={handleLogout}
+        title="Sign Out"
+        message="Are you sure you want to log out of MediCare Hub? You will need to sign in again to access your account."
+        confirmText="Sign Out"
+        cancelText="Cancel"
+        variant="danger"
+        icon={<FaSignOutAlt className="w-5 h-5 text-red-600" />}
+      />
     </nav>
   );
 };

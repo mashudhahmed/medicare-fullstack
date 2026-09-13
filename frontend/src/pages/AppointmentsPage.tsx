@@ -4,6 +4,8 @@ import { doctorsApi } from '../api/doctors';
 import { Appointment, Doctor, CreateAppointmentData } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import { FaCalendar, FaClock, FaStethoscope, FaTimes, FaPlus, FaVideo } from 'react-icons/fa';
+import toast from 'react-hot-toast';
+import { Modal, ConfirmModal } from '../components/ui';
 import VideoConsultationModal from '../components/video/VideoConsultationModal';
 
 const LoadingSpinner: React.FC = () => (
@@ -18,6 +20,7 @@ const AppointmentsPage: React.FC = () => {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [cancellingApptId, setCancellingApptId] = useState<string | null>(null);
   const [videoApptId, setVideoApptId] = useState<string | null>(null);
   const [formData, setFormData] = useState<CreateAppointmentData>({
     doctor: '',
@@ -62,21 +65,27 @@ const AppointmentsPage: React.FC = () => {
       await appointmentsApi.create({ ...formData });
       setShowModal(false);
       setFormData({ doctor: '', appointment_date: '', reason: '', notes: '' });
+      toast.success('Appointment booked successfully!');
       await fetchAppointments();
     } catch (error: unknown) {
       const err = error as { response?: { data?: { error?: string } } };
-      alert(err.response?.data?.error || 'Failed to book appointment');
+      toast.error(err.response?.data?.error || 'Failed to book appointment');
     }
   };
 
-  const handleCancel = async (id: string) => {
-    if (window.confirm('Are you sure you want to cancel this appointment?')) {
-      try {
-        await appointmentsApi.cancel(id);
-        await fetchAppointments();
-      } catch {
-        alert('Failed to cancel appointment');
-      }
+  const handleCancelClick = (id: string) => {
+    setCancellingApptId(id);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!cancellingApptId) return;
+    try {
+      await appointmentsApi.cancel(cancellingApptId);
+      toast.success('Appointment cancelled successfully');
+      setCancellingApptId(null);
+      await fetchAppointments();
+    } catch {
+      toast.error('Failed to cancel appointment');
     }
   };
 
@@ -149,7 +158,7 @@ const AppointmentsPage: React.FC = () => {
                 )}
                 {appointment.status !== 'cancelled' && appointment.status !== 'completed' && (
                   <button
-                    onClick={() => handleCancel(appointment.id)}
+                    onClick={() => handleCancelClick(appointment.id)}
                     className="btn-danger text-sm flex items-center"
                   >
                     <FaTimes className="mr-1" /> Cancel
@@ -162,80 +171,93 @@ const AppointmentsPage: React.FC = () => {
       </div>
 
       {/* Booking Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">Book Appointment</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="label">Doctor</label>
-                <select
-                  className="input-field"
-                  value={formData.doctor}
-                  onChange={(e) =>
-                    setFormData({ ...formData, doctor: e.target.value })
-                  }
-                  required
-                >
-                  <option value="">Select a doctor</option>
-                  {doctors.map((doctor) => (
-                    <option key={doctor.id} value={doctor.id}>
-                      Dr. {doctor.user.full_name} - {doctor.specialty}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="label">Date & Time</label>
-                <input
-                  type="datetime-local"
-                  className="input-field"
-                  value={formData.appointment_date}
-                  onChange={(e) =>
-                    setFormData({ ...formData, appointment_date: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <div>
-                <label className="label">Reason</label>
-                <textarea
-                  className="input-field"
-                  rows={3}
-                  value={formData.reason}
-                  onChange={(e) =>
-                    setFormData({ ...formData, reason: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <div>
-                <label className="label">Notes (Optional)</label>
-                <textarea
-                  className="input-field"
-                  rows={2}
-                  value={formData.notes || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, notes: e.target.value })
-                  }
-                />
-              </div>
-              <div className="flex gap-3">
-                <button type="submit" className="btn-primary flex-1">
-                  Book Appointment
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="btn-secondary flex-1"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title="Book Appointment"
+        description="Schedule a new consultation with one of our healthcare professionals."
+        size="md"
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="label">Doctor</label>
+            <select
+              className="input-field"
+              value={formData.doctor}
+              onChange={(e) =>
+                setFormData({ ...formData, doctor: e.target.value })
+              }
+              required
+            >
+              <option value="">Select a doctor</option>
+              {doctors.map((doctor) => (
+                <option key={doctor.id} value={doctor.id}>
+                  Dr. {doctor.user.full_name} - {doctor.specialty}
+                </option>
+              ))}
+            </select>
           </div>
-        </div>
-      )}
+          <div>
+            <label className="label">Date & Time</label>
+            <input
+              type="datetime-local"
+              className="input-field"
+              value={formData.appointment_date}
+              onChange={(e) =>
+                setFormData({ ...formData, appointment_date: e.target.value })
+              }
+              required
+            />
+          </div>
+          <div>
+            <label className="label">Reason</label>
+            <textarea
+              className="input-field"
+              rows={3}
+              value={formData.reason}
+              onChange={(e) =>
+                setFormData({ ...formData, reason: e.target.value })
+              }
+              required
+            />
+          </div>
+          <div>
+            <label className="label">Notes (Optional)</label>
+            <textarea
+              className="input-field"
+              rows={2}
+              value={formData.notes || ''}
+              onChange={(e) =>
+                setFormData({ ...formData, notes: e.target.value })
+              }
+            />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button type="submit" className="btn-primary flex-1">
+              Book Appointment
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowModal(false)}
+              className="btn-secondary flex-1"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Cancel Appointment Confirmation Modal */}
+      <ConfirmModal
+        isOpen={!!cancellingApptId}
+        onClose={() => setCancellingApptId(null)}
+        onConfirm={handleConfirmCancel}
+        title="Cancel Appointment"
+        message="Are you sure you want to cancel this appointment? This action cannot be undone."
+        confirmText="Yes, Cancel"
+        cancelText="Keep Appointment"
+        variant="danger"
+      />
 
       {/* Video Consultation Modal */}
       <VideoConsultationModal
