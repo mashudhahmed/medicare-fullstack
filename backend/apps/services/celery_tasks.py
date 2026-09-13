@@ -15,7 +15,7 @@ def send_appointment_reminders(self):
     reminder_end = now + timedelta(hours=25)
 
     upcoming_appointments = Appointment.objects.filter(
-        status='CONFIRMED',
+        status__in=[Appointment.Status.CONFIRMED, 'confirmed'],
         appointment_date__range=(reminder_start, reminder_end)
     ).select_related('patient__user', 'doctor__user')
 

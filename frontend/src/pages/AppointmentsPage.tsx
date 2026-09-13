@@ -3,7 +3,8 @@ import { appointmentsApi } from '../api/appointments';
 import { doctorsApi } from '../api/doctors';
 import { Appointment, Doctor, CreateAppointmentData } from '../types';
 import { useAuth } from '../hooks/useAuth';
-import { FaCalendar, FaClock, FaStethoscope, FaTimes, FaPlus } from 'react-icons/fa';
+import { FaCalendar, FaClock, FaStethoscope, FaTimes, FaPlus, FaVideo } from 'react-icons/fa';
+import VideoConsultationModal from '../components/video/VideoConsultationModal';
 
 const LoadingSpinner: React.FC = () => (
   <div className="flex items-center justify-center py-12" role="status" aria-label="Loading">
@@ -17,6 +18,7 @@ const AppointmentsPage: React.FC = () => {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [videoApptId, setVideoApptId] = useState<string | null>(null);
   const [formData, setFormData] = useState<CreateAppointmentData>({
     doctor: '',
     appointment_date: '',
@@ -135,14 +137,25 @@ const AppointmentsPage: React.FC = () => {
                   </p>
                 </div>
               </div>
-              {appointment.status !== 'cancelled' && appointment.status !== 'completed' && (
-                <button
-                  onClick={() => handleCancel(appointment.id)}
-                  className="btn-danger text-sm flex items-center"
-                >
-                  <FaTimes className="mr-1" /> Cancel
-                </button>
-              )}
+              <div className="flex items-center space-x-2">
+                {appointment.status !== 'cancelled' && (
+                  <button
+                    onClick={() => setVideoApptId(appointment.id)}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-sm flex items-center font-medium transition shadow-sm"
+                    title="Start / Join Video Consultation"
+                  >
+                    <FaVideo className="mr-1.5" /> Video Call
+                  </button>
+                )}
+                {appointment.status !== 'cancelled' && appointment.status !== 'completed' && (
+                  <button
+                    onClick={() => handleCancel(appointment.id)}
+                    className="btn-danger text-sm flex items-center"
+                  >
+                    <FaTimes className="mr-1" /> Cancel
+                  </button>
+                )}
+              </div>
             </div>
           ))
         )}
@@ -223,6 +236,13 @@ const AppointmentsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Video Consultation Modal */}
+      <VideoConsultationModal
+        isOpen={!!videoApptId}
+        onClose={() => setVideoApptId(null)}
+        appointmentId={videoApptId || ''}
+      />
     </div>
   );
 };

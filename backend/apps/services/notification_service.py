@@ -51,14 +51,25 @@ class NotificationService:
         email_template: str = None,
         context: dict = None,
     ):
+        category_upper = str(category).upper()
+        type_mapping = {
+            "APPOINTMENT": Notification.Type.APPOINTMENT,
+            "APPOINTMENT_CONFIRMATION": Notification.Type.APPOINTMENT,
+            "APPOINTMENT_REMINDER": Notification.Type.APPOINTMENT,
+            "BILLING": Notification.Type.BILLING,
+            "MEDICAL": Notification.Type.MEDICAL,
+            "SYSTEM": Notification.Type.SYSTEM,
+        }
+        notif_type = type_mapping.get(category_upper, Notification.Type.SYSTEM)
+
         notification = Notification.objects.create(
             user=user,
             title=title,
             message=message,
-            category=category
+            notification_type=notif_type,
         )
 
-        cls._broadcast_websocket(user.id, notification)
+        cls._broadcast_websocket(str(user.id), notification, category_upper)
 
         if send_email and getattr(user, "email", None):
             cls._enqueue_email(
@@ -72,7 +83,7 @@ class NotificationService:
         return notification
 
     @classmethod
-    def _broadcast_websocket(cls, user_id: int, notification: Notification):
+    def _broadcast_websocket(cls, user_id: str, notification: Notification, category: str = "SYSTEM"):
         try:
             channel_layer = get_channel_layer()
             if channel_layer:
@@ -81,10 +92,10 @@ class NotificationService:
                     group_name,
                     {
                         "type": "send_notification",
-                        "id": notification.id,
+                        "id": str(notification.id),
                         "title": notification.title,
                         "message": notification.message,
-                        "category": notification.category,
+                        "category": category,
                         "created_at": (
                             notification.created_at.isoformat()
                             if hasattr(notification, "created_at") and notification.created_at

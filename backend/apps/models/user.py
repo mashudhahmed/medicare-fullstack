@@ -72,6 +72,12 @@ class User(AbstractBaseUser, PermissionsMixin):
         self.is_active = True
         self.save()
 
+    def get_full_name(self):
+        return self.full_name or self.email
+
+    def get_short_name(self):
+        return self.full_name.split()[0] if self.full_name else self.email
+
     @property
     def is_patient(self):
         return self.role == self.Role.PATIENT

@@ -45,6 +45,18 @@ export const appointmentsApi = {
     });
     return data;
   },
+
+  reschedule: async (id: string, appointmentDate: string) => {
+    const { data } = await api.post(`/appointments/${id}/reschedule/`, {
+      appointment_date: appointmentDate,
+    });
+    return data;
+  },
+
+  getVideoSession: async (id: string) => {
+    const { data } = await api.get(`/appointments/${id}/video/`);
+    return data;
+  },
 };
 
 export default appointmentsApi;

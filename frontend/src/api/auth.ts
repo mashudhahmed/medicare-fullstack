@@ -56,8 +56,10 @@ export const authApi = {
   },
 
   passwordResetConfirm: async (payload: {
-    uid: string;
-    token: string;
+    email?: string;
+    code?: string;
+    uid?: string;
+    token?: string;
     new_password: string;
     new_password2?: string;
   }) => {

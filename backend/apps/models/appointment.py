@@ -24,11 +24,19 @@ class Appointment(models.Model):
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING, db_index=True)
     reason = models.TextField()
     notes = models.TextField(blank=True, null=True)
+    video_room_id = models.CharField(max_length=100, blank=True, null=True)
 
     is_deleted = models.BooleanField(default=False, db_index=True)
     deleted_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.video_room_id:
+            import uuid
+            room_token = self.id.hex[:12] if self.id else uuid.uuid4().hex[:12]
+            self.video_room_id = f"medicare-room-{room_token}"
+        super().save(*args, **kwargs)
 
     # Soft Delete Manager
     objects = SoftDeleteManager()

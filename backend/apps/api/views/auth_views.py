@@ -1,3 +1,4 @@
+import os
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -140,7 +141,7 @@ class UserStatusView(APIView):
 
 
 class PasswordResetRequestView(generics.GenericAPIView):
-    """Request password reset email"""
+    """Request password reset with 6-digit email code and link"""
     permission_classes = [permissions.AllowAny]
     serializer_class = PasswordResetRequestSerializer
 
@@ -149,25 +150,57 @@ class PasswordResetRequestView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
 
         user = User.objects.get(email=serializer.validated_data['email'])
+
+        from apps.models.password_reset import PasswordResetCode
+        reset_code = PasswordResetCode.create_for_user(user, expiry_minutes=15)
+
         token = default_token_generator.make_token(user)
         uid = urlsafe_base64_encode(force_bytes(user.pk))
 
-        # Frontend URL - change to your actual frontend URL
-        reset_link = f"http://localhost:3000/reset-password?uid={uid}&token={token}"
+        origin = request.headers.get('Origin') or request.META.get('HTTP_ORIGIN')
+        frontend_url = origin or os.getenv('FRONTEND_URL', 'http://localhost:5173')
+        reset_link = f"{frontend_url.rstrip('/')}/reset-password?email={user.email}&code={reset_code.code}&uid={uid}&token={token}"
+
+        email_message = (
+            f"Hello {user.get_full_name()},\n\n"
+            f"Your MediCare Hub password reset verification code is:\n\n"
+            f"    {reset_code.code}\n\n"
+            f"This code will expire in 15 minutes.\n\n"
+            f"Alternatively, you can click the link below to reset your password directly:\n"
+            f"{reset_link}\n\n"
+            f"If you didn't request this, please ignore this email."
+        )
 
         send_mail(
-            subject="Password Reset - MediCare Hub",
-            message=f"Hello {user.full_name},\n\nClick the link below to reset your password:\n\n{reset_link}\n\nIf you didn't request this, please ignore this email.",
+            subject="Password Reset Code - MediCare Hub",
+            message=email_message,
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[user.email],
             fail_silently=False,
         )
 
-        return Response({"message": "Password reset link sent to your email."})
+        from apps.utils.audit import log_audit
+        log_audit(
+            request=request,
+            action='SECURITY',
+            resource_type='User',
+            resource_id=str(user.id),
+            details={'action': 'password_reset_code_requested', 'email': user.email}
+        )
+
+        response_data = {
+            "message": "Verification code sent to your email.",
+            "email": user.email,
+        }
+        if settings.DEBUG:
+            response_data["code"] = reset_code.code
+            response_data["reset_link"] = reset_link
+
+        return Response(response_data)
 
 
 class PasswordResetConfirmView(generics.GenericAPIView):
-    """Confirm password reset with token"""
+    """Confirm password reset with 6-digit code or link token"""
     permission_classes = [permissions.AllowAny]
     serializer_class = PasswordResetConfirmSerializer
 
@@ -178,5 +211,19 @@ class PasswordResetConfirmView(generics.GenericAPIView):
         user = serializer.validated_data['user']
         user.set_password(serializer.validated_data['new_password'])
         user.save()
+
+        code_obj = serializer.validated_data.get('code_obj')
+        if code_obj:
+            code_obj.is_used = True
+            code_obj.save(update_fields=['is_used'])
+
+        from apps.utils.audit import log_audit
+        log_audit(
+            request=request,
+            action='UPDATE',
+            resource_type='User',
+            resource_id=str(user.id),
+            details={'action': 'password_reset_confirmed', 'method': 'code' if code_obj else 'token'}
+        )
 
         return Response({"message": "Password has been reset successfully."})

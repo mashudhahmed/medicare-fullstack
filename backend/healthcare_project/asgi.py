@@ -15,14 +15,15 @@ os.environ.setdefault(
 
 django_asgi_app = get_asgi_application()
 
-# WebSocket URL patterns – add when you implement real-time features
-# from apps.api.routing import websocket_urlpatterns
-websocket_urlpatterns = []
+from channels.routing import ProtocolTypeRouter, URLRouter
+from channels.security.websocket import AllowedHostsOriginValidator
+from apps.core.jwt_auth_middleware import JWTAuthMiddlewareStack
+from apps.api.routing import websocket_urlpatterns
 
 application = ProtocolTypeRouter({
     'http': django_asgi_app,
     'websocket': AllowedHostsOriginValidator(
-        AuthMiddlewareStack(
+        JWTAuthMiddlewareStack(
             URLRouter(websocket_urlpatterns)
         )
     ),

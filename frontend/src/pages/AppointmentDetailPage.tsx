@@ -6,9 +6,10 @@ import LoadingSpinner from '../components/ui/LoadingSpinner';
 import { 
   FaCalendar, FaClock, FaStethoscope, 
   FaTimes, FaArrowLeft, FaCheckCircle, FaClock as FaClockIcon,
-  FaComment
+  FaComment, FaVideo
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
+import VideoConsultationModal from '../components/video/VideoConsultationModal';
 
 const AppointmentDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -16,6 +17,7 @@ const AppointmentDetailPage: React.FC = () => {
   const [appointment, setAppointment] = useState<Appointment | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
+  const [showVideoModal, setShowVideoModal] = useState(false);
 
   const fetchAppointment = useCallback(async () => {
     if (!id) return;
@@ -175,6 +177,14 @@ const AppointmentDetailPage: React.FC = () => {
 
           {/* Actions */}
           <div className="flex flex-wrap gap-3 mt-6 pt-6 border-t border-gray-200">
+            {appointment.status !== 'cancelled' && (
+              <button
+                onClick={() => setShowVideoModal(true)}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl flex items-center font-semibold shadow-md transition"
+              >
+                <FaVideo className="mr-2" /> Start Video Consultation
+              </button>
+            )}
             {canCancel && (
               <button
                 onClick={handleCancel}
@@ -193,6 +203,12 @@ const AppointmentDetailPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <VideoConsultationModal
+        isOpen={showVideoModal}
+        onClose={() => setShowVideoModal(false)}
+        appointmentId={id || ''}
+      />
     </div>
   );
 };

@@ -14,12 +14,13 @@ const Navbar: React.FC = () => {
   };
 
   const navItems = [
-    { name: 'Dashboard', href: '/', icon: <FaHome className="inline mr-1" />, roles: ['patient', 'doctor', 'admin'] },
+    { name: 'Dashboard', href: '/dashboard', icon: <FaHome className="inline mr-1" />, roles: ['patient', 'doctor', 'admin'] },
     { name: 'Patients', href: '/patients', icon: <FaUsers className="inline mr-1" />, roles: ['admin', 'doctor'] },
     { name: 'Doctors', href: '/doctors', icon: <FaUserMd className="inline mr-1" />, roles: ['admin', 'patient'] },
     { name: 'Appointments', href: '/appointments', icon: <FaCalendar className="inline mr-1" />, roles: ['patient', 'doctor', 'admin'] },
     { name: 'Medical Records', href: '/medical-records', icon: <FaFileMedical className="inline mr-1" />, roles: ['patient', 'doctor', 'admin'] },
     { name: 'Billing', href: '/billing', icon: <FaCreditCard className="inline mr-1" />, roles: ['patient', 'admin'] },
+    { name: 'Admin Panel', href: '/admin', icon: <FaUsers className="inline mr-1" />, roles: ['admin'] },
   ];
 
   const hasAccess = (item: typeof navItems[0]) => {

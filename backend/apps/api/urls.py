@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import auth_views
 from .views import admin_views, patient_views, doctor_views, appointment_views, billing_views, medical_record_views
-from .views import notification_views
+from .views import notification_views, prescription_views, audit_views
 
 app_name = 'api'
 
@@ -28,6 +28,7 @@ urlpatterns = [
     path('admin/doctors/pending/', admin_views.PendingDoctorsView.as_view(), name='admin-pending-doctors'),
     path('admin/doctors/<uuid:doctor_id>/verify/', admin_views.VerifyDoctorView.as_view(), name='admin-verify-doctor'),
     path('admin/doctors/<uuid:doctor_id>/approve/', admin_views.VerifyDoctorView.as_view(), name='admin-approve-doctor'),
+    path('admin/audit-logs/', audit_views.ListAuditLogsView.as_view(), name='admin-audit-logs'),
 
     # Patients
     path('patients/', patient_views.ListPatientsView.as_view(), name='patient-list'),
@@ -43,6 +44,8 @@ urlpatterns = [
     path('appointments/', appointment_views.ListCreateAppointmentsView.as_view(), name='appointment-list'),
     path('appointments/<uuid:pk>/', appointment_views.AppointmentDetailView.as_view(), name='appointment-detail'),
     path('appointments/<uuid:pk>/cancel/', appointment_views.CancelAppointmentView.as_view(), name='appointment-cancel'),
+    path('appointments/<uuid:pk>/reschedule/', appointment_views.RescheduleAppointmentView.as_view(), name='appointment-reschedule'),
+    path('appointments/<uuid:pk>/video/', appointment_views.JoinVideoConsultationView.as_view(), name='appointment-video'),
     path('appointments/my/', appointment_views.MyAppointmentsView.as_view(), name='my-appointments'),
     path('appointments/available-slots/<uuid:doctor_id>/', appointment_views.AvailableSlotsView.as_view(), name='available-slots'),
 
@@ -57,6 +60,12 @@ urlpatterns = [
     path('medical-records/<uuid:pk>/', medical_record_views.MedicalRecordDetailView.as_view(), name='medical-record-detail'),
     path('medical-records/my/', medical_record_views.MyMedicalRecordsView.as_view(), name='my-medical-records'),
     path('patients/<uuid:patient_id>/records/', medical_record_views.PatientMedicalRecordsView.as_view(), name='patient-medical-records'),
+
+    # Prescriptions
+    path('prescriptions/', prescription_views.ListCreatePrescriptionView.as_view(), name='prescription-list'),
+    path('prescriptions/<uuid:pk>/', prescription_views.PrescriptionDetailView.as_view(), name='prescription-detail'),
+    path('prescriptions/my/', prescription_views.MyPrescriptionsView.as_view(), name='my-prescriptions'),
+    path('prescriptions/<uuid:pk>/refill/', prescription_views.RefillPrescriptionView.as_view(), name='prescription-refill'),
 
     # Notifications
     path('notifications/', notification_views.NotificationListView.as_view(), name='notifications'),

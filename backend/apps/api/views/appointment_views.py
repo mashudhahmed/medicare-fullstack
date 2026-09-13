@@ -182,3 +182,102 @@ class AvailableSlotsView(APIView):
             'date': target_date.isoformat(),
             'slots': slots,
         })
+
+
+class JoinVideoConsultationView(APIView):
+    """Retrieve video consultation room details and join session"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk):
+        try:
+            appointment = Appointment.objects.select_related('patient__user', 'doctor__user').get(id=pk, is_deleted=False)
+        except Appointment.DoesNotExist:
+            return Response({'error': 'Appointment not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        user = request.user
+        is_patient = user.role == 'patient' and appointment.patient.user == user
+        is_doctor = user.role == 'doctor' and appointment.doctor.user == user
+        is_admin = user.role == 'admin'
+
+        if not (is_patient or is_doctor or is_admin):
+            return Response({'error': 'You are not authorized to join this consultation'}, status=status.HTTP_403_FORBIDDEN)
+
+        if appointment.status == 'cancelled':
+            return Response({'error': 'This appointment was cancelled'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Ensure video room exists
+        if not appointment.video_room_id:
+            appointment.video_room_id = f"medicare-room-{appointment.id.hex[:12]}"
+            appointment.save(update_fields=['video_room_id'])
+
+        # If doctor joins and it's confirmed, mark in progress
+        if is_doctor and appointment.status in ['pending', 'confirmed']:
+            appointment.status = 'in_progress'
+            appointment.save(update_fields=['status'])
+
+        from apps.utils.audit import log_audit
+        log_audit(
+            request=request,
+            action='VIEW',
+            resource_type='VideoConsultation',
+            resource_id=str(appointment.id),
+            details={'room': appointment.video_room_id}
+        )
+
+        return Response({
+            'appointment_id': str(appointment.id),
+            'video_room_id': appointment.video_room_id,
+            'doctor_name': appointment.doctor.user.get_full_name(),
+            'patient_name': appointment.patient.user.get_full_name(),
+            'user_display_name': user.get_full_name(),
+            'status': appointment.status,
+            'is_doctor': is_doctor,
+        })
+
+
+class RescheduleAppointmentView(APIView):
+    """Reschedule an existing appointment"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            appointment = Appointment.objects.select_related('patient__user', 'doctor__user').get(id=pk, is_deleted=False)
+        except Appointment.DoesNotExist:
+            return Response({'error': 'Appointment not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        user = request.user
+        if not (user.role == 'admin' or appointment.patient.user == user or appointment.doctor.user == user):
+            return Response({'error': 'Not authorized to reschedule this appointment'}, status=status.HTTP_403_FORBIDDEN)
+
+        new_date_str = request.data.get('appointment_date')
+        if not new_date_str:
+            return Response({'error': 'New appointment_date is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            from dateutil.parser import parse as parse_date
+            new_date = parse_date(new_date_str)
+            if timezone.is_naive(new_date):
+                new_date = timezone.make_aware(new_date)
+        except Exception:
+            return Response({'error': 'Invalid date format'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if new_date <= timezone.now():
+            return Response({'error': 'Appointments cannot be rescheduled to the past'}, status=status.HTTP_400_BAD_REQUEST)
+
+        appointment.appointment_date = new_date
+        appointment.status = 'confirmed'
+        appointment.save()
+
+        from apps.services.notification_service import NotificationService
+        recipient = appointment.doctor.user if user.role == 'patient' else appointment.patient.user
+        NotificationService.send_user_notification(
+            user=recipient,
+            title="Appointment Rescheduled",
+            message=f"Your appointment has been rescheduled to {new_date.strftime('%Y-%m-%d %H:%M')}.",
+            category="APPOINTMENT"
+        )
+
+        return Response({
+            'message': 'Appointment rescheduled successfully',
+            'appointment': AppointmentSerializer(appointment).data
+        }, status=status.HTTP_200_OK)

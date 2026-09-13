@@ -23,10 +23,10 @@ const ForgotPasswordPage: React.FC = () => {
     try {
       await authApi.passwordReset(email);
       setSent(true);
-      toast.success('Password reset email sent!');
+      toast.success('Verification code sent to your email!');
     } catch (error: unknown) {
       const apiError = error as ApiError;
-      toast.error(apiError.response?.data?.error || 'Failed to send reset email');
+      toast.error(apiError.response?.data?.error || 'Failed to send reset code');
     } finally {
       setLoading(false);
     }
@@ -36,16 +36,24 @@ const ForgotPasswordPage: React.FC = () => {
     return (
       <div className="min-h-[70vh] flex items-center justify-center">
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <FaEnvelope className="text-3xl text-green-600" />
+          <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <FaEnvelope className="text-3xl text-teal-600" />
           </div>
           <h2 className="text-2xl font-bold text-medicare-dark mb-2">Check Your Email</h2>
           <p className="text-gray-600 mb-6">
-            We've sent a password reset link to <strong>{email}</strong>
+            We've sent a <strong>6-digit verification code</strong> to <strong>{email}</strong>.
           </p>
-          <Link to="/login" className="btn-primary inline-block">
-            Back to Login
-          </Link>
+          <div className="space-y-3">
+            <Link
+              to={`/reset-password?email=${encodeURIComponent(email)}`}
+              className="btn-primary w-full py-3 inline-block font-semibold"
+            >
+              Enter 6-Digit Code & Reset
+            </Link>
+            <Link to="/login" className="btn-secondary w-full py-2.5 inline-block text-sm">
+              Back to Login
+            </Link>
+          </div>
         </div>
       </div>
     );

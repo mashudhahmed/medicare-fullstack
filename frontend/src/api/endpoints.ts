@@ -52,4 +52,13 @@ export const ENDPOINTS = {
     READ: (id: string) => `/notifications/${id}/read/`,
     READ_ALL: '/notifications/read-all/',
   },
+  PRESCRIPTIONS: {
+    LIST: '/prescriptions/',
+    DETAIL: (id: string) => `/prescriptions/${id}/`,
+    MY: '/prescriptions/my/',
+    REFILL: (id: string) => `/prescriptions/${id}/refill/`,
+  },
+  AUDIT_LOGS: {
+    LIST: '/admin/audit-logs/',
+  },
 } as const;

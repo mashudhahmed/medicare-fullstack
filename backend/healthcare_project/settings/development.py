@@ -59,6 +59,10 @@ if os.getenv('ENABLE_DEBUG_TOOLBAR', 'False').lower() in ('true', '1', 'yes'):
 # Relax Axes a bit for local testing
 AXES_ENABLED = os.getenv('AXES_ENABLED', 'True').lower() in ('true', '1', 'yes')
 
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# Email: If EMAIL_HOST_USER is provided in .env, use SMTP backend; otherwise default to console
+if os.getenv('EMAIL_HOST_USER'):
+    EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
+else:
+    EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
 
 print(">>> Running with DEVELOPMENT settings")
