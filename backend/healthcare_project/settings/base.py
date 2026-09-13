@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 from datetime import timedelta
 from dotenv import load_dotenv
+from celery.schedules import crontab
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -24,6 +25,8 @@ ALLOWED_HOSTS = [
     if h.strip()
 ]
 
+SITE_NAME = os.getenv('SITE_NAME', 'Medicare Hub')
+
 # ---------------------------------------------------------------------------
 # Applications
 # ---------------------------------------------------------------------------
@@ -36,14 +39,15 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # Third-party
+    'channels',                           # Django Channels for WebSockets
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'drf_yasg',
     'django_filters',
-    'axes',                  # brute-force protection
-    'csp',                   # Content Security Policy
+    'axes',                               # brute-force protection
+    'csp',                                # Content Security Policy
 
     # Local
     'apps.models.apps.ModelsConfig',
@@ -58,7 +62,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'axes.middleware.AxesMiddleware',                 # after AuthenticationMiddleware
+    'axes.middleware.AxesMiddleware',     # after AuthenticationMiddleware
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -70,7 +74,7 @@ ASGI_APPLICATION = 'healthcare_project.asgi.application'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],  # Enabled for transactional email HTML templates
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -127,7 +131,6 @@ AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]
 AXES_RESET_ON_SUCCESS = True
 AXES_ENABLED = True
 
-# Required for django-axes
 AUTHENTICATION_BACKENDS = [
     'axes.backends.AxesStandaloneBackend',
     'django.contrib.auth.backends.ModelBackend',
@@ -150,8 +153,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# File upload settings
-FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880   # 5MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880   # 5MB
 
 # ---------------------------------------------------------------------------
@@ -166,8 +168,17 @@ EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() in ('true', '1', 'yes
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'noreply@medicarehub.com')
 
 # ---------------------------------------------------------------------------
-# CORS (overridden in production)
+# CORS
 # ---------------------------------------------------------------------------
+CORS_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        'CORS_ALLOWED_ORIGINS',
+        'http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173'
+    ).split(',')
+    if origin.strip()
+]
+CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'False').lower() in ('true', '1', 'yes')
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = ['DELETE', 'GET', 'OPTIONS', 'PATCH', 'POST', 'PUT']
 CORS_ALLOW_HEADERS = [
@@ -191,7 +202,7 @@ REST_FRAMEWORK = {
     'DEFAULT_PARSER_CLASSES': (
         'rest_framework.parsers.JSONParser',
         'rest_framework.parsers.FormParser',
-        'rest_framework.parsers.MultiPartParser',  # For file uploads
+        'rest_framework.parsers.MultiPartParser',
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
@@ -208,7 +219,7 @@ REST_FRAMEWORK = {
         'anon': '100/hour',
         'user': '1000/hour',
     },
-    'EXCEPTION_HANDLER': 'apps.core.exceptions.custom_exception_handler',  # Custom exception handler
+    'EXCEPTION_HANDLER': 'apps.core.exceptions.custom_exception_handler',
 }
 
 # ---------------------------------------------------------------------------
@@ -236,30 +247,33 @@ SIMPLE_JWT = {
 # ---------------------------------------------------------------------------
 CSP_DEFAULT_SRC = ("'self'",)
 CSP_SCRIPT_SRC = ("'self'",)
-CSP_STYLE_SRC = ("'self'", "'unsafe-inline'")  # allow inline for Swagger/admin
+CSP_STYLE_SRC = ("'self'", "'unsafe-inline'")
 CSP_IMG_SRC = ("'self'", "data:", "https:")
 CSP_FONT_SRC = ("'self'", "data:")
-CSP_CONNECT_SRC = ("'self'",)
+CSP_CONNECT_SRC = ("'self'", "ws:", "wss:")
 CSP_FRAME_ANCESTORS = ("'none'",)
 CSP_BASE_URI = ("'self'",)
 CSP_FORM_ACTION = ("'self'",)
 
 # ---------------------------------------------------------------------------
-# Caching (Redis if available, otherwise local memory)
+# Caching & Channel Layers (Redis)
 # ---------------------------------------------------------------------------
 REDIS_URL = os.getenv('REDIS_URL', '')
 
-if REDIS_URL:
+if REDIS_URL and not REDIS_URL.startswith('memory://'):
     CACHES = {
         'default': {
-            'BACKEND': 'django_redis.cache.RedisCache',
-            'LOCATION': REDIS_URL,
-            'OPTIONS': {
-                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-                'SOCKET_CONNECT_TIMEOUT': 5,
-                'SOCKET_TIMEOUT': 5,
-            },
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': f"{REDIS_URL}/1",
             'KEY_PREFIX': 'medicare',
+        }
+    }
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                'hosts': [f"{REDIS_URL}/2"],
+            },
         }
     }
 else:
@@ -269,18 +283,6 @@ else:
             'LOCATION': 'medicare-local',
         }
     }
-
-# ---------------------------------------------------------------------------
-# Channels (WebSockets) – uses Redis when available
-# ---------------------------------------------------------------------------
-if REDIS_URL:
-    CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': 'channels_redis.core.RedisChannelLayer',
-            'CONFIG': {'hosts': [REDIS_URL]},
-        }
-    }
-else:
     CHANNEL_LAYERS = {
         'default': {
             'BACKEND': 'channels.layers.InMemoryChannelLayer',
@@ -288,16 +290,23 @@ else:
     }
 
 # ---------------------------------------------------------------------------
-# Celery (only used when REDIS_URL is set)
+# Celery & Beat Scheduler
 # ---------------------------------------------------------------------------
-CELERY_BROKER_URL = REDIS_URL or 'memory://'
-CELERY_RESULT_BACKEND = REDIS_URL or 'cache+memory://'
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', f"{REDIS_URL}/0" if REDIS_URL else 'memory://')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', f"{REDIS_URL}/0" if REDIS_URL else 'rpc://')
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60
+
+CELERY_BEAT_SCHEDULE = {
+    'send-daily-appointment-reminders': {
+        'task': 'apps.services.celery_tasks.send_appointment_reminders',
+        'schedule': crontab(hour=8, minute=0),
+    },
+}
 
 # ---------------------------------------------------------------------------
 # Logging

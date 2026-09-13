@@ -10,7 +10,7 @@ from channels.security.websocket import AllowedHostsOriginValidator
 
 os.environ.setdefault(
     'DJANGO_SETTINGS_MODULE',
-    'healthcare_project.settings.production'
+    'healthcare_project.settings'
 )
 
 django_asgi_app = get_asgi_application()

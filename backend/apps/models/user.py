@@ -2,39 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.utils import timezone
 import uuid
-from .managers import SoftDeleteManager
-
-
-class UserManager(models.Manager):
-    def _create_user(self, email, password, **extra_fields):
-        if not email:
-            raise ValueError('Email is required')
-
-        email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
-        user.set_password(password)
-        user.id = uuid.uuid4()
-        user.save(using=self._db)
-        return user
-
-    def create_user(self, email, password=None, **extra_fields):
-        extra_fields.setdefault('is_active', True)
-        extra_fields.setdefault('is_staff', False)
-        extra_fields.setdefault('is_superuser', False)
-        return self._create_user(email, password, **extra_fields)
-
-    def create_superuser(self, email, password=None, **extra_fields):
-        extra_fields.setdefault('is_active', True)
-        extra_fields.setdefault('is_staff', True)
-        extra_fields.setdefault('is_superuser', True)
-        extra_fields.setdefault('role', 'admin')
-
-        if extra_fields.get('is_staff') is not True:
-            raise ValueError('Superuser must have is_staff=True.')
-        if extra_fields.get('is_superuser') is not True:
-            raise ValueError('Superuser must have is_superuser=True.')
-
-        return self._create_user(email, password, **extra_fields)
+from .managers import SoftDeleteUserManager
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -55,7 +23,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     phone = models.CharField(max_length=20, unique=True, db_index=True, null=True, blank=True)
     address = models.TextField(blank=True, null=True)
 
-    # Profile picture - using ImageField for better file handling
+    # Profile picture
     profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
     profile_picture_public_id = models.CharField(max_length=255, blank=True, null=True)
 
@@ -76,8 +44,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['full_name']
 
-    # Managers
-    objects = SoftDeleteManager()
+    # Managers – SoftDeleteUserManager has create_user / create_superuser
+    objects = SoftDeleteUserManager()
     all_objects = models.Manager()
 
     class Meta:
@@ -106,12 +74,12 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     @property
     def is_patient(self):
-        return self.role == 'patient'
+        return self.role == self.Role.PATIENT
 
     @property
     def is_doctor(self):
-        return self.role == 'doctor'
+        return self.role == self.Role.DOCTOR
 
     @property
     def is_admin(self):
-        return self.role == 'admin'
+        return self.role == self.Role.ADMIN

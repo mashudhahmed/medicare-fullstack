@@ -1,107 +1,77 @@
-from django.db import models
+from datetime import timedelta
+from django.db import transaction
 from django.utils import timezone
+from rest_framework.exceptions import ValidationError
 from apps.models.appointment import Appointment
-from apps.models.patient import Patient
-from apps.models.doctor import Doctor
+from apps.models.billing import Billing
 from apps.services.notification_service import NotificationService
 
-
 class AppointmentService:
-    @staticmethod
-    def check_availability(doctor_id, appointment_date, duration_minutes=30):
-        """Check if a doctor is available at a given time"""
-        end_time = appointment_date + timezone.timedelta(minutes=duration_minutes)
+    SLOT_DURATION_MINUTES = 30
 
-        overlapping = Appointment.objects.filter(
-            doctor_id=doctor_id,
-            appointment_date__lt=end_time,
-            appointment_date__gt=appointment_date - timezone.timedelta(minutes=duration_minutes),
-            status__in=['pending', 'confirmed', 'in_progress'],
-            is_deleted=False
-        ).exists()
+    @classmethod
+    def schedule_appointment(cls, patient, doctor, scheduled_time, reason=""):
+        if scheduled_time <= timezone.now():
+            raise ValidationError("Appointments cannot be scheduled in the past.")
 
-        return not overlapping
+        slot_end_time = scheduled_time + timedelta(minutes=cls.SLOT_DURATION_MINUTES)
 
-    @staticmethod
-    def get_upcoming_appointments(user, days_ahead=7):
-        """Get upcoming appointments for a user"""
-        now = timezone.now()
-        future = now + timezone.timedelta(days=days_ahead)
+        with transaction.atomic():
+            doctor_conflict = Appointment.objects.select_for_update().filter(
+                doctor=doctor,
+                status__in=['SCHEDULED', 'CONFIRMED'],
+                appointment_date__lt=slot_end_time,
+                appointment_date__gte=scheduled_time - timedelta(minutes=cls.SLOT_DURATION_MINUTES)
+            ).exists()
 
-        if user.role == 'patient':
-            return Appointment.objects.filter(
-                patient__user=user,
-                appointment_date__gte=now,
-                appointment_date__lte=future,
-                status__in=['pending', 'confirmed'],
-                is_deleted=False
-            ).order_by('appointment_date')
-        elif user.role == 'doctor':
-            return Appointment.objects.filter(
-                doctor__user=user,
-                appointment_date__gte=now,
-                appointment_date__lte=future,
-                status__in=['pending', 'confirmed'],
-                is_deleted=False
-            ).order_by('appointment_date')
-        return Appointment.objects.none()
+            if doctor_conflict:
+                raise ValidationError("The selected doctor is unavailable during this time slot.")
 
-    @staticmethod
-    def cancel_appointment(appointment_id, user):
-        """Cancel an appointment"""
-        try:
-            appointment = Appointment.objects.get(id=appointment_id, is_deleted=False)
-        except Appointment.DoesNotExist:
-            return None, "Appointment not found"
+            appointment = Appointment.objects.create(
+                patient=patient,
+                doctor=doctor,
+                appointment_date=scheduled_time,
+                reason=reason,
+                status='CONFIRMED'
+            )
 
-        if user.role not in ['patient', 'doctor', 'admin']:
-            return None, "You cannot cancel this appointment"
+            NotificationService.send_user_notification(
+                user=doctor.user,
+                title="New Appointment Scheduled",
+                message=f"New booking with patient {patient.user.get_full_name()} on {scheduled_time.strftime('%Y-%m-%d %H:%M')}.",
+                category="APPOINTMENT_CONFIRMATION",
+                send_email=True,
+                email_template="APPOINTMENT_CONFIRMATION",
+                context={
+                    "doctor_name": doctor.user.get_full_name(),
+                    "patient_name": patient.user.get_full_name(),
+                    "appointment_date": scheduled_time.strftime('%Y-%m-%d %H:%M'),
+                }
+            )
 
-        if appointment.status in ['completed', 'cancelled', 'no_show']:
-            return None, f"Cannot cancel appointment with status: {appointment.status}"
+            return appointment
 
-        old_status = appointment.status
-        appointment.status = 'cancelled'
-        appointment.save()
+    @classmethod
+    def complete_appointment(cls, appointment, consultation_fee=50.00):
+        with transaction.atomic():
+            appointment.status = 'COMPLETED'
+            appointment.save(update_fields=['status'])
 
-        # Send notification
-        NotificationService.notify_appointment_status_change(appointment, old_status, 'cancelled')
+            billing, created = Billing.objects.get_or_create(
+                appointment=appointment,
+                defaults={
+                    'patient': appointment.patient,
+                    'amount': consultation_fee,
+                    'total_amount': consultation_fee,
+                    'status': 'PENDING'
+                }
+            )
 
-        return appointment, None
+            NotificationService.send_user_notification(
+                user=appointment.patient.user,
+                title="Invoice Ready",
+                message=f"Your consultation invoice of ${consultation_fee:.2f} is ready for payment.",
+                category="BILLING"
+            )
 
-    @staticmethod
-    def update_appointment_status(appointment, new_status, user):
-        """Update appointment status and send notifications"""
-        if appointment.status == new_status:
-            return appointment, "Status already set to this value"
-
-        old_status = appointment.status
-        appointment.status = new_status
-        appointment.save()
-
-        # Send notification for status change
-        NotificationService.notify_appointment_status_change(appointment, old_status, new_status)
-
-        return appointment, None
-
-    @staticmethod
-    def get_appointment_stats(doctor_id=None):
-        """Get appointment statistics"""
-        queryset = Appointment.objects.filter(is_deleted=False)
-
-        if doctor_id:
-            queryset = queryset.filter(doctor_id=doctor_id)
-
-        total = queryset.count()
-        pending = queryset.filter(status='pending').count()
-        confirmed = queryset.filter(status='confirmed').count()
-        completed = queryset.filter(status='completed').count()
-        cancelled = queryset.filter(status='cancelled').count()
-
-        return {
-            'total': total,
-            'pending': pending,
-            'confirmed': confirmed,
-            'completed': completed,
-            'cancelled': cancelled,
-        }
+            return billing

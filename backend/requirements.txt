@@ -1,5 +1,5 @@
 # =============================================================================
-# MediCare Hub – Production Requirements (2026)
+# MediCare Hub – Production Requirements
 # =============================================================================
 
 # Core
@@ -11,6 +11,7 @@ python-dotenv==1.0.1
 
 # Database
 psycopg2-binary==2.9.12
+dj-database-url==2.2.0
 
 # Auth & Security
 bcrypt==4.2.0
@@ -23,7 +24,7 @@ django-filter==24.3
 drf-yasg==1.21.8
 django-import-export==4.1.1
 
-# Caching / Async / WebSockets (optional – enable via REDIS_URL)
+# Caching / Async / WebSockets
 django-redis==5.4.0
 redis==5.2.0
 celery==5.4.0
@@ -45,3 +46,4 @@ sentry-sdk==2.18.0
 # Production server
 gunicorn==23.0.0
 whitenoise==6.8.2
+uvicorn[standard]==0.32.0

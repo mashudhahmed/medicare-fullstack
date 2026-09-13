@@ -1,5 +1,4 @@
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
+from django.urls import path
 from .views import auth_views
 from .views import admin_views, patient_views, doctor_views, appointment_views, billing_views, medical_record_views
 from .views import notification_views
@@ -14,16 +13,21 @@ urlpatterns = [
     path('auth/profile/', auth_views.ProfileView.as_view(), name='profile'),
     path('auth/change-password/', auth_views.ChangePasswordView.as_view(), name='change-password'),
     path('auth/refresh-token/', auth_views.RefreshTokenView.as_view(), name='refresh-token'),
+    # Alias for SimpleJWT-style path (frontend compatibility)
+    path('auth/token/refresh/', auth_views.RefreshTokenView.as_view(), name='token-refresh'),
     path('auth/status/', auth_views.UserStatusView.as_view(), name='auth-status'),
     # Password Reset
     path('auth/password-reset/', auth_views.PasswordResetRequestView.as_view(), name='password-reset'),
     path('auth/password-reset/confirm/', auth_views.PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
 
     # Admin
+    path('admin/dashboard/', admin_views.AdminDashboardView.as_view(), name='admin-dashboard'),
     path('admin/users/', admin_views.ListUsersView.as_view(), name='admin-users'),
     path('admin/users/<uuid:pk>/', admin_views.UserDetailView.as_view(), name='admin-user-detail'),
     path('admin/users/<uuid:user_id>/status/', admin_views.UpdateUserStatusView.as_view(), name='admin-user-status'),
+    path('admin/doctors/pending/', admin_views.PendingDoctorsView.as_view(), name='admin-pending-doctors'),
     path('admin/doctors/<uuid:doctor_id>/verify/', admin_views.VerifyDoctorView.as_view(), name='admin-verify-doctor'),
+    path('admin/doctors/<uuid:doctor_id>/approve/', admin_views.VerifyDoctorView.as_view(), name='admin-approve-doctor'),
 
     # Patients
     path('patients/', patient_views.ListPatientsView.as_view(), name='patient-list'),
@@ -40,6 +44,7 @@ urlpatterns = [
     path('appointments/<uuid:pk>/', appointment_views.AppointmentDetailView.as_view(), name='appointment-detail'),
     path('appointments/<uuid:pk>/cancel/', appointment_views.CancelAppointmentView.as_view(), name='appointment-cancel'),
     path('appointments/my/', appointment_views.MyAppointmentsView.as_view(), name='my-appointments'),
+    path('appointments/available-slots/<uuid:doctor_id>/', appointment_views.AvailableSlotsView.as_view(), name='available-slots'),
 
     # Billing
     path('billing/', billing_views.ListCreateBillingView.as_view(), name='billing-list'),

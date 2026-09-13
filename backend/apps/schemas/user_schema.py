@@ -68,8 +68,11 @@ class LoginSerializer(serializers.Serializer):
     def validate(self, attrs):
         email = attrs.get('email')
         password = attrs.get('password')
+        request = self.context.get('request')
 
-        user = authenticate(email=email, password=password)
+        user = authenticate(request=request, email=email, password=password)
+        if not user:
+            user = authenticate(request=request, username=email, password=password)
 
         if not user:
             raise serializers.ValidationError('Invalid credentials')
@@ -85,13 +88,22 @@ class LoginSerializer(serializers.Serializer):
 
 
 class ChangePasswordSerializer(serializers.Serializer):
+    """Accepts both new_password2 and confirm_password for frontend compatibility."""
     old_password = serializers.CharField(required=True, write_only=True)
     new_password = serializers.CharField(required=True, write_only=True, validators=[validate_password])
-    new_password2 = serializers.CharField(required=True, write_only=True)
+    new_password2 = serializers.CharField(required=False, write_only=True, allow_blank=True)
+    confirm_password = serializers.CharField(required=False, write_only=True, allow_blank=True)
 
     def validate(self, attrs):
-        if attrs['new_password'] != attrs['new_password2']:
-            raise serializers.ValidationError({'new_password2': 'Passwords do not match'})
+        confirm = attrs.get('new_password2') or attrs.get('confirm_password')
+        if not confirm:
+            raise serializers.ValidationError({
+                'new_password2': 'Confirmation password is required'
+            })
+        if attrs['new_password'] != confirm:
+            raise serializers.ValidationError({
+                'new_password2': 'Passwords do not match'
+            })
         return attrs
 
     def validate_old_password(self, value):

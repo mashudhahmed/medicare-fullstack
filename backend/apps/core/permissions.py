@@ -1,89 +1,157 @@
 """
-Role-based permission classes for MediCare Hub.
+Role-based and object-level permissions.
+
+IMPORTANT: User.Role values in the model are lowercase:
+  'admin', 'doctor', 'patient'
+Always compare against those values.
 """
 from rest_framework.permissions import BasePermission, SAFE_METHODS
 
 
-class IsPatient(BasePermission):
-    """Allows access only to users with role = patient."""
-    message = "Only patients can perform this action."
+def _role(user) -> str | None:
+    """Return the user's role string (lowercase) or None."""
+    return getattr(user, "role", None)
+
+
+def _is_admin(user) -> bool:
+    return bool(
+        user
+        and user.is_authenticated
+        and user.is_active
+        and (
+            user.is_staff
+            or user.is_superuser
+            or _role(user) == "admin"
+        )
+    )
+
+
+class IsAuthenticatedUser(BasePermission):
+    """Ensures the requesting user is authenticated and active."""
 
     def has_permission(self, request, view):
-        return (
+        return bool(
             request.user
             and request.user.is_authenticated
-            and getattr(request.user, 'role', None) == 'patient'
+            and request.user.is_active
         )
+
+
+class IsAdminOrStaff(BasePermission):
+    """Grants access to superusers, staff, or users with the admin role."""
+
+    def has_permission(self, request, view):
+        return _is_admin(request.user)
+
+
+# Alias used throughout the views (admin_views, patient_views, billing, etc.)
+IsAdmin = IsAdminOrStaff
 
 
 class IsDoctor(BasePermission):
-    """Allows access only to users with role = doctor."""
-    message = "Only doctors can perform this action."
-
-    def has_permission(self, request, view):
-        return (
-            request.user
-            and request.user.is_authenticated
-            and getattr(request.user, 'role', None) == 'doctor'
-        )
-
-
-class IsAdmin(BasePermission):
-    """Allows access only to users with role = admin (or Django staff/superuser)."""
-    message = "Only administrators can perform this action."
+    """Grants access to active doctors and platform administrators."""
 
     def has_permission(self, request, view):
         user = request.user
-        if not user or not user.is_authenticated:
+        if not (user and user.is_authenticated and user.is_active):
             return False
-        return (
-            getattr(user, 'role', None) == 'admin'
-            or user.is_staff
-            or user.is_superuser
-        )
+        if _is_admin(user):
+            return True
+        return _role(user) == "doctor"
 
 
-class IsPatientOrDoctor(BasePermission):
-    """Patient or Doctor."""
-    message = "Only patients or doctors can perform this action."
+class IsPatient(BasePermission):
+    """Grants access to active patients and platform administrators."""
 
     def has_permission(self, request, view):
-        return (
-            request.user
-            and request.user.is_authenticated
-            and getattr(request.user, 'role', None) in ('patient', 'doctor')
-        )
+        user = request.user
+        if not (user and user.is_authenticated and user.is_active):
+            return False
+        if _is_admin(user):
+            return True
+        return _role(user) == "patient"
 
 
 class IsOwnerOrAdmin(BasePermission):
     """
-    Object-level: owner of the object or admin.
-    Expects the object to have a `user` attribute or to be the user itself.
+    Object-level: allow if the user owns the object (or is linked via .user)
+    or is an admin/staff.
+    Used by PatientDetailView / DoctorDetailView.
     """
-    message = "You do not have permission to access this resource."
+
+    def has_permission(self, request, view):
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and request.user.is_active
+        )
 
     def has_object_permission(self, request, view, obj):
         user = request.user
-        if not user or not user.is_authenticated:
+        if not (user and user.is_authenticated and user.is_active):
             return False
-        if getattr(user, 'role', None) == 'admin' or user.is_staff or user.is_superuser:
+
+        if _is_admin(user):
             return True
-        # Direct user object
+
+        # Direct user match
         if obj == user:
             return True
-        # Common related field
-        owner = getattr(obj, 'user', None)
-        if owner is not None:
-            return owner == user
-        # Patient / Doctor profile patterns
-        for attr in ('patient', 'doctor'):
-            related = getattr(obj, attr, None)
-            if related is not None and getattr(related, 'user', None) == user:
+
+        # Profile models (Patient / Doctor) that have a .user FK
+        owner = getattr(obj, "user", None)
+        if owner is not None and owner == user:
+            return True
+
+        return False
+
+
+class IsOwnerOrDoctorOrAdmin(BasePermission):
+    """
+    Object-level permission for medical records, appointments, billing, etc.
+
+    - Admins / staff: full access
+    - Assigned doctor: full access
+    - Patient / owner: read-only (unless view.allow_patient_mutation = True)
+    """
+
+    def has_object_permission(self, request, view, obj):
+        user = request.user
+        if not (user and user.is_authenticated and user.is_active):
+            return False
+
+        if _is_admin(user):
+            return True
+
+        if obj == user:
+            return True
+
+        patient_user = (
+            getattr(getattr(obj, "patient", None), "user", None)
+            or getattr(obj, "patient", None)
+        )
+        doctor_user = (
+            getattr(getattr(obj, "doctor", None), "user", None)
+            or getattr(obj, "doctor", None)
+        )
+
+        if patient_user == user:
+            if request.method in SAFE_METHODS or getattr(
+                view, "allow_patient_mutation", False
+            ):
                 return True
+
+        if doctor_user == user:
+            return True
+
+        if getattr(obj, "user", None) == user:
+            return True
+
         return False
 
 
 class ReadOnly(BasePermission):
-    """Allow read-only methods for anyone authenticated."""
+    """Restricts access to safe methods only (GET, HEAD, OPTIONS)."""
+
     def has_permission(self, request, view):
         return request.method in SAFE_METHODS
