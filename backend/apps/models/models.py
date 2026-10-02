@@ -10,6 +10,7 @@ from .audit_log import AuditLog
 from .password_reset import PasswordResetCode
 from .review import DoctorReview
 from .vital import PatientVital
+from .chat_message import ChatMessage
 
 __all__ = [
     'User',
@@ -24,4 +25,5 @@ __all__ = [
     'PasswordResetCode',
     'DoctorReview',
     'PatientVital',
+    'ChatMessage',
 ]

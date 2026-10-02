@@ -4,7 +4,7 @@ import { appointmentsApi } from '../api/appointments';
 import { doctorsApi } from '../api/doctors';
 import { Appointment, Doctor, CreateAppointmentData } from '../types';
 import { useAuth } from '../hooks/useAuth';
-import { FaCalendar, FaClock, FaStethoscope, FaTimes, FaPlus, FaVideo, FaStar } from 'react-icons/fa';
+import { FaCalendar, FaClock, FaStethoscope, FaTimes, FaPlus, FaVideo, FaStar, FaComments } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { Modal, ConfirmModal, SearchableSelect } from '../components/ui';
 import VideoConsultationModal from '../components/video/VideoConsultationModal';
@@ -196,6 +196,19 @@ const AppointmentsPage: React.FC = () => {
                   >
                     <FaVideo className="mr-1.5" /> Video Call
                   </button>
+                )}
+                {appointment.status !== 'cancelled' && (
+                  <Link
+                    to={`/messages?user=${
+                      user?.role === 'patient'
+                        ? appointment.doctor_details?.user?.id || appointment.doctor_details?.user_id || ''
+                        : appointment.patient_details?.user?.id || appointment.patient_details?.user_id || ''
+                    }`}
+                    className="bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 px-3 py-1.5 rounded-lg text-sm flex items-center font-medium transition shadow-sm"
+                    title="Send follow-up message"
+                  >
+                    <FaComments className="mr-1.5 text-teal-600" /> Chat
+                  </Link>
                 )}
                 {appointment.status === 'completed' && user?.role === 'patient' && (
                   <Link

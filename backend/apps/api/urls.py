@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import auth_views
 from .views import admin_views, patient_views, doctor_views, appointment_views, billing_views, medical_record_views
-from .views import notification_views, prescription_views, audit_views, upload_views, review_views, vital_views
+from .views import notification_views, prescription_views, audit_views, upload_views, review_views, vital_views, chat_views
 
 app_name = 'api'
 
@@ -89,6 +89,13 @@ urlpatterns = [
     path('vitals/', vital_views.ListCreateVitalsView.as_view(), name='vital-list'),
     path('vitals/<uuid:pk>/', vital_views.VitalDetailView.as_view(), name='vital-detail'),
     path('patients/<uuid:patient_id>/vitals/', vital_views.PatientVitalsHistoryView.as_view(), name='patient-vitals-history'),
+
+    # Doctor-Patient Follow-Up Chat
+    path('messages/conversations/', chat_views.ConversationListView.as_view(), name='conversation-list'),
+    path('messages/unread-count/', chat_views.UnreadMessageCountView.as_view(), name='unread-message-count'),
+    path('messages/', chat_views.SendMessageView.as_view(), name='send-message'),
+    path('messages/<uuid:user_id>/', chat_views.MessageThreadView.as_view(), name='message-thread'),
+    path('messages/<uuid:user_id>/read/', chat_views.MarkMessagesReadView.as_view(), name='mark-messages-read'),
 
     # File & Image Uploads (Cloudinary)
     path('auth/avatar/', upload_views.AvatarUploadView.as_view(), name='avatar-upload'),

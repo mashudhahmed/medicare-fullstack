@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { doctorsApi } from '../api/doctors';
 import { appointmentsApi } from '../api/appointments';
 import { reviewsApi } from '../api/reviews';
@@ -22,6 +22,7 @@ import {
   FaCommentDots,
   FaTrash,
   FaUserCheck,
+  FaComments,
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
@@ -284,14 +285,22 @@ const DoctorDetailPage: React.FC = () => {
             </div>
           )}
 
-          {/* Book Button */}
+          {/* Action Buttons */}
           {user?.role === 'patient' && (
-            <button
-              onClick={() => setShowBooking(true)}
-              className="btn-primary w-full py-3 text-base flex items-center justify-center font-semibold shadow-md"
-            >
-              <FaBookmark className="mr-2" /> Book Consultation with Dr. {doctor.user.full_name}
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => setShowBooking(true)}
+                className="btn-primary flex-1 py-3 text-base flex items-center justify-center font-semibold shadow-md"
+              >
+                <FaBookmark className="mr-2" /> Book Consultation
+              </button>
+              <Link
+                to={`/messages?user=${doctor.user_id || doctor.user?.id}`}
+                className="bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 px-5 py-3 rounded-xl text-base flex items-center justify-center font-semibold transition shadow-sm"
+              >
+                <FaComments className="mr-2 text-teal-600" /> Send Message
+              </Link>
+            </div>
           )}
         </div>
       </div>

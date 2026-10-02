@@ -75,6 +75,13 @@ export const ENDPOINTS = {
     DETAIL: (id: string) => `/vitals/${id}/`,
     PATIENT_HISTORY: (patientId: string) => `/patients/${patientId}/vitals/`,
   },
+  MESSAGES: {
+    CONVERSATIONS: '/messages/conversations/',
+    THREAD: (userId: string) => `/messages/${userId}/`,
+    SEND: '/messages/',
+    MARK_READ: (userId: string) => `/messages/${userId}/read/`,
+    UNREAD_COUNT: '/messages/unread-count/',
+  },
   AUDIT_LOGS: {
     LIST: '/admin/audit-logs/',
   },

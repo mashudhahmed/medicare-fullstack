@@ -360,6 +360,60 @@ class CoreFeaturesTest(TestCase):
         self.assertEqual(interaction_alert['severity'], 'critical')
         self.assertEqual(interaction_alert['conflict_with'], 'Warfarin')
 
+    def test_doctor_patient_chat_messaging_and_threads(self):
+        """Verify direct doctor-patient messaging, conversation threads, read receipts, and unread counts"""
+        from rest_framework.test import APIClient
+        from apps.models.chat_message import ChatMessage
+        client = APIClient()
+
+        # 1. Patient sends message to doctor
+        client.force_authenticate(user=self.patient_user)
+        send_resp = client.post('/api/messages/', {
+            'recipient': str(self.doctor_user.id),
+            'content': 'Hello Dr. House, I have a quick question about my medication dosage.'
+        })
+        self.assertEqual(send_resp.status_code, 201)
+        self.assertEqual(send_resp.data['sender_name'], self.patient_user.get_full_name())
+        self.assertFalse(send_resp.data['is_read'])
+
+        # 2. Check doctor's unread count
+        client.force_authenticate(user=self.doctor_user)
+        unread_resp = client.get('/api/messages/unread-count/')
+        self.assertEqual(unread_resp.status_code, 200)
+        self.assertEqual(unread_resp.data['unread_count'], 1)
+
+        # 3. Check doctor's conversations list
+        conv_resp = client.get('/api/messages/conversations/')
+        self.assertEqual(conv_resp.status_code, 200)
+        self.assertEqual(len(conv_resp.data), 1)
+        self.assertEqual(conv_resp.data[0]['full_name'], self.patient_user.get_full_name())
+        self.assertEqual(conv_resp.data[0]['unread_count'], 1)
+
+        # 4. Doctor opens thread (should auto-mark as read)
+        thread_resp = client.get(f'/api/messages/{self.patient_user.id}/')
+        self.assertEqual(thread_resp.status_code, 200)
+        self.assertEqual(len(thread_resp.data), 1)
+        self.assertTrue(thread_resp.data[0]['is_read'])
+
+        # Doctor unread count should now be 0
+        unread_after = client.get('/api/messages/unread-count/')
+        self.assertEqual(unread_after.data['unread_count'], 0)
+
+        # 5. Doctor replies
+        reply_resp = client.post('/api/messages/', {
+            'recipient': str(self.patient_user.id),
+            'content': 'Take 10mg once daily in the morning with a glass of water.'
+        })
+        self.assertEqual(reply_resp.status_code, 201)
+
+        # 6. Patient views thread (now contains 2 messages)
+        client.force_authenticate(user=self.patient_user)
+        patient_thread = client.get(f'/api/messages/{self.doctor_user.id}/')
+        self.assertEqual(patient_thread.status_code, 200)
+        self.assertEqual(len(patient_thread.data), 2)
+        self.assertEqual(patient_thread.data[1]['content'], 'Take 10mg once daily in the morning with a glass of water.')
+
+
 
 
 

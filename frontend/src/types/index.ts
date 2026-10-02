@@ -363,5 +363,42 @@ export interface CreatePatientVitalData {
   recorded_at?: string;
 }
 
+// Doctor-Patient Follow-Up Chat Types
+export interface ChatMessage {
+  id: string;
+  appointment?: string;
+  sender: string;
+  sender_name: string;
+  sender_role: string;
+  sender_avatar?: string;
+  recipient: string;
+  recipient_name: string;
+  recipient_role: string;
+  recipient_avatar?: string;
+  content: string;
+  attachment_url?: string;
+  is_read: boolean;
+  read_at?: string;
+  created_at: string;
+}
+
+export interface SendChatMessageData {
+  recipient: string;
+  appointment?: string;
+  content: string;
+  attachment_url?: string;
+}
+
+export interface ConversationSummary {
+  user_id: string;
+  full_name: string;
+  role: string;
+  profile_picture?: string;
+  last_message: string;
+  last_message_at: string;
+  unread_count: number;
+}
+
+
 
 
