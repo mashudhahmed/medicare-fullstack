@@ -11,7 +11,6 @@ import {
   FaFileMedical,
   FaArrowRight,
   FaCheckCircle,
-  FaStar,
   FaBars,
   FaTimes,
   FaLock,
@@ -26,21 +25,21 @@ const LandingPage: React.FC = () => {
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800 antialiased selection:bg-teal-500 selection:text-white">
       {/* Top Sticky Navigation Bar */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-sm transition-all">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           {/* Brand Logo and Name */}
-          <Link to="/" className="flex items-center gap-3 group focus:outline-none">
+          <Link to="/" className="flex items-center gap-2.5 group focus:outline-none">
             <div className="relative flex items-center justify-center">
               <img
                 src="/logo.png"
                 alt="MediCare Logo"
-                className="h-10 w-10 rounded-xl object-contain bg-white p-1 shadow-md shadow-teal-700/10 border border-slate-100 group-hover:scale-105 transition-transform duration-200"
+                className="h-9 w-9 rounded-xl object-contain bg-white p-0.5 shadow-sm border border-slate-100 group-hover:scale-105 transition-transform duration-200"
               />
             </div>
             <div className="flex flex-col">
-              <span className="text-xl font-bold tracking-tight text-slate-900 group-hover:text-teal-700 transition-colors">
+              <span className="text-lg font-bold tracking-tight text-slate-900 group-hover:text-teal-700 transition-colors leading-tight">
                 MediCare
               </span>
-              <span className="text-[10px] uppercase font-semibold tracking-wider text-teal-600">
+              <span className="text-[10px] uppercase font-semibold tracking-wider text-teal-600 leading-none">
                 Healthcare Network
               </span>
             </div>
@@ -63,11 +62,11 @@ const LandingPage: React.FC = () => {
           </nav>
 
           {/* Top Right Action Buttons */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-2.5">
             {isAuthenticated ? (
               <Link
                 to="/dashboard"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold bg-teal-600 text-white shadow-sm hover:bg-teal-700 hover:shadow transition-all duration-150"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-teal-600 text-white shadow-sm hover:bg-teal-700 hover:shadow transition-all duration-150"
               >
                 Go to Dashboard
                 <FaArrowRight className="text-xs" />
@@ -76,13 +75,13 @@ const LandingPage: React.FC = () => {
               <>
                 <Link
                   to="/login"
-                  className="px-4 py-2 text-sm font-semibold text-slate-700 hover:text-teal-600 transition-colors"
+                  className="px-3.5 py-2 text-sm font-semibold text-slate-700 hover:text-teal-600 transition-colors"
                 >
                   Sign In
                 </Link>
                 <Link
                   to="/register"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold bg-teal-600 text-white shadow-sm hover:bg-teal-700 hover:shadow transition-all duration-150"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-teal-600 text-white shadow-sm hover:bg-teal-700 hover:shadow transition-all duration-150"
                 >
                   Get Started
                   <FaArrowRight className="text-xs" />
@@ -165,7 +164,7 @@ const LandingPage: React.FC = () => {
       </header>
 
       {/* Hero Section - Simple, Classy & Modern */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-white via-teal-50/25 to-slate-50 pt-16 pb-20 lg:pt-24 lg:pb-28 border-b border-slate-200/60">
+      <section className="relative overflow-hidden bg-gradient-to-b from-white via-teal-50/25 to-slate-50 pt-0 pb-10 lg:pb-14 border-b border-slate-200/60">
         {/* Delicate Ambient Radial Glow */}
         <div className="absolute top-0 right-1/4 w-96 h-96 bg-teal-200/20 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-10 left-10 w-80 h-80 bg-teal-100/30 rounded-full blur-3xl pointer-events-none" />
@@ -179,9 +178,9 @@ const LandingPage: React.FC = () => {
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 items-start pt-2 sm:pt-3">
             {/* Left Content Column */}
-            <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
+            <div className="lg:col-span-7 space-y-4 sm:space-y-5 text-center lg:text-left pt-4 lg:pt-8">
               {/* Refined Pill Badge */}
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-50 border border-teal-200/80 text-teal-800 text-xs font-semibold tracking-wide shadow-sm">
                 <FaShieldAlt className="text-teal-600" />
@@ -237,96 +236,36 @@ const LandingPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Right Classy Clinical Showcase Card */}
-            <div className="lg:col-span-5 relative">
-              <div className="relative mx-auto max-w-md lg:max-w-none">
-                {/* Main Card */}
-                <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl shadow-slate-200/70 border border-slate-200/80 relative space-y-5">
-                  {/* Doctor Profile Header */}
-                  <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                    <div className="flex items-center gap-3.5">
-                      <div className="w-12 h-12 rounded-2xl bg-teal-50 border border-teal-100/80 flex items-center justify-center text-teal-600 p-3 shadow-inner">
-                        <FaUserMd className="text-2xl" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <h4 className="font-bold text-slate-900 text-sm">Dr. Sarah Jenkins, MD</h4>
-                          <FaCheckCircle className="text-teal-600 text-xs" title="Verified Specialist" />
-                        </div>
-                        <p className="text-xs text-slate-500">Chief of Cardiology</p>
-                        <div className="flex items-center gap-1 mt-1 text-xs">
-                          <FaStar className="text-amber-400 text-xs" />
-                          <span className="font-semibold text-slate-800">4.95</span>
-                          <span className="text-slate-400">(1,400+ consultations)</span>
-                        </div>
-                      </div>
-                    </div>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      Available
-                    </span>
-                  </div>
+            {/* Right Hero Image Showcase */}
+            <div className="lg:col-span-5 relative flex items-center justify-center -mt-2 lg:-mt-6">
+              {/* Soft Ambient Backdrop Glow */}
+              <div className="absolute w-72 h-72 bg-teal-200/30 rounded-full blur-3xl -z-10 pointer-events-none" />
 
-                  {/* Scheduled Slot Preview */}
-                  <div className="bg-slate-50/80 rounded-2xl p-4 border border-slate-100 space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-500 font-medium">Next Consultation Slot</span>
-                      <span className="font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200/60">
-                        Today at 2:30 PM
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs pt-1 text-slate-600">
-                      <span className="flex items-center gap-1.5">
-                        <FaCalendarCheck className="text-teal-600 text-xs" /> Instant Online Booking
-                      </span>
-                      <span className="text-slate-400">Video or In-Clinic</span>
-                    </div>
-                  </div>
+              {/* Hero Image Container */}
+              <div className="relative max-w-sm sm:max-w-md lg:max-w-none">
+                <img
+                  src="/hero.png"
+                  alt="MediCare Healthcare"
+                  className="w-full max-h-[480px] lg:max-h-[520px] object-contain drop-shadow-2xl transition-transform duration-300 hover:scale-[1.01]"
+                />
 
-                  {/* Minimalist Vitals Telemetry Strip */}
-                  <div className="bg-gradient-to-r from-teal-900 via-slate-900 to-teal-950 text-white rounded-2xl p-4 shadow-md">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <FaHeartbeat className="text-rose-400 text-sm" />
-                        <span className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
-                          Live Telemetry
-                        </span>
-                      </div>
-                      <span className="text-[11px] font-medium text-emerald-400">
-                        Normal Sinus Rhythm
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-slate-400">Heart Rate</span>
-                      <span className="text-sm font-bold text-teal-300">
-                        74 <span className="text-[10px] text-slate-400 font-normal">BPM</span>
-                      </span>
-                    </div>
-                    {/* Delicate SVG Heartbeat Line */}
-                    <div className="mt-2 pt-1 border-t border-slate-800">
-                      <svg
-                        className="w-full h-8 text-teal-400"
-                        viewBox="0 0 320 40"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          d="M0,20 L60,20 L75,8 L90,32 L105,4 L120,26 L135,20 L190,20 L205,8 L220,32 L235,4 L250,26 L265,20 L320,20"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </div>
+                {/* Floating Verified Specialists Badge */}
+                <div className="absolute -bottom-3 -left-3 sm:-left-6 bg-white/95 backdrop-blur-md border border-slate-200/80 rounded-2xl px-4 py-2.5 shadow-xl flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center">
+                    <FaCheckCircle className="text-teal-600 text-base" />
                   </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-900">Verified Specialists</p>
+                    <p className="text-[10px] text-slate-500">Board Certified Care</p>
+                  </div>
+                </div>
 
-                  {/* Micro Trust Guarantee Footer */}
-                  <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
-                    <span className="flex items-center gap-1">
-                      <FaShieldAlt className="text-teal-600 text-xs" /> HIPAA Ready Privacy
-                    </span>
-                    <span>Encrypted Electronic Records</span>
+                {/* Floating Live Availability Badge */}
+                <div className="absolute top-6 -right-3 sm:-right-5 bg-white/95 backdrop-blur-md border border-slate-200/80 rounded-2xl px-3.5 py-2 shadow-xl flex items-center gap-2.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <div>
+                    <p className="text-xs font-bold text-slate-900">Instant Booking</p>
+                    <p className="text-[10px] text-emerald-600 font-semibold">Available Today</p>
                   </div>
                 </div>
               </div>
