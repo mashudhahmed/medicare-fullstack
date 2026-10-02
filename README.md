@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="frontend/public/logo.png" alt="MediCare Hub Logo" width="120" style="border-radius: 20px;" />
+</p>
+
 # MediCare Hub
 
 An enterprise-grade, full-stack healthcare management and telemedicine platform engineered with Django REST Framework, Django Channels, PostgreSQL, React, TypeScript, and Tailwind CSS.
