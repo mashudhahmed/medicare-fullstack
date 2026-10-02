@@ -69,6 +69,7 @@ urlpatterns = [
 
     # Prescriptions
     path('prescriptions/', prescription_views.ListCreatePrescriptionView.as_view(), name='prescription-list'),
+    path('prescriptions/check-safety/', prescription_views.CheckDrugSafetyView.as_view(), name='prescription-check-safety'),
     path('prescriptions/<uuid:pk>/', prescription_views.PrescriptionDetailView.as_view(), name='prescription-detail'),
     path('prescriptions/<uuid:pk>/pdf/', prescription_views.PrescriptionPDFView.as_view(), name='prescription-pdf'),
     path('prescriptions/my/', prescription_views.MyPrescriptionsView.as_view(), name='my-prescriptions'),

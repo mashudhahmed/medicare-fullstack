@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { prescriptionsApi } from '../api/prescriptions';
 import { patientsApi } from '../api/patients';
-import { Prescription, Patient, CreatePrescriptionData } from '../types';
+import { Prescription, Patient, CreatePrescriptionData, DrugSafetyEvaluation } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import {
   FaPills,
@@ -15,6 +15,8 @@ import {
   FaTrash,
   FaInfoCircle,
   FaFilePdf,
+  FaExclamationTriangle,
+  FaCheckCircle,
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { Modal, ConfirmModal, SearchableSelect } from '../components/ui';
@@ -49,7 +51,15 @@ const PrescriptionsPage: React.FC = () => {
     duration_days: 7,
     instructions: '',
     refills_allowed: 0,
+    acknowledge_warnings: false,
+    override_reason: '',
   });
+
+  // Real-time Drug Safety Check States
+  const [safetyEvaluation, setSafetyEvaluation] = useState<DrugSafetyEvaluation | null>(null);
+  const [checkingSafety, setCheckingSafety] = useState(false);
+  const [acknowledgeWarnings, setAcknowledgeWarnings] = useState(false);
+  const [overrideReason, setOverrideReason] = useState('');
 
   const fetchPrescriptions = useCallback(async () => {
     try {
@@ -79,10 +89,45 @@ const PrescriptionsPage: React.FC = () => {
     }
   }, [fetchPrescriptions, fetchPatients, user?.role]);
 
+  // Real-time Drug Safety Check Effect
+  useEffect(() => {
+    if (!formData.patient || !formData.medication_name || formData.medication_name.trim().length < 3) {
+      setSafetyEvaluation(null);
+      setAcknowledgeWarnings(false);
+      setOverrideReason('');
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        setCheckingSafety(true);
+        const res = await prescriptionsApi.checkSafety(formData.patient, formData.medication_name);
+        setSafetyEvaluation(res);
+      } catch (err) {
+        console.error('Safety check failed', err);
+      } finally {
+        setCheckingSafety(false);
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [formData.patient, formData.medication_name]);
+
   const handleIssueSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.patient || !formData.medication_name || !formData.dosage || !formData.frequency) {
       toast.error('Please fill in all required fields');
+      return;
+    }
+
+    // Safety check constraint
+    if (safetyEvaluation && !safetyEvaluation.is_safe && !acknowledgeWarnings) {
+      toast.error('Critical drug hazard detected. Review warnings and confirm clinical override.');
+      return;
+    }
+
+    if (safetyEvaluation && !safetyEvaluation.is_safe && !overrideReason.trim()) {
+      toast.error('Please enter a clinical override justification to proceed.');
       return;
     }
 
@@ -92,6 +137,8 @@ const PrescriptionsPage: React.FC = () => {
         ...formData,
         duration_days: Number(formData.duration_days) || 7,
         refills_allowed: Number(formData.refills_allowed) || 0,
+        acknowledge_warnings: acknowledgeWarnings,
+        override_reason: overrideReason.trim(),
       });
       toast.success('Prescription issued successfully');
       setShowIssueModal(false);
@@ -103,14 +150,24 @@ const PrescriptionsPage: React.FC = () => {
         duration_days: 7,
         instructions: '',
         refills_allowed: 0,
+        acknowledge_warnings: false,
+        override_reason: '',
       });
+      setSafetyEvaluation(null);
+      setAcknowledgeWarnings(false);
+      setOverrideReason('');
       fetchPrescriptions();
     } catch (error: unknown) {
-      const message =
+      const responseData =
         typeof error === 'object' && error !== null && 'response' in error
-          ? (error as { response?: { data?: { error?: string } } }).response?.data?.error
+          ? (error as { response?: { data?: any } }).response?.data
           : undefined;
-      toast.error(message || 'Failed to issue prescription');
+      const message =
+        responseData?.safety_warning ||
+        responseData?.error ||
+        responseData?.message ||
+        'Failed to issue prescription';
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
@@ -278,7 +335,14 @@ const PrescriptionsPage: React.FC = () => {
                         <p className="text-xs text-gray-500">{p.dosage}</p>
                       </div>
                     </div>
-                    {getStatusBadge(p.status)}
+                    <div className="flex flex-col items-end gap-1">
+                      {getStatusBadge(p.status)}
+                      {p.has_safety_warning && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                          <FaExclamationTriangle className="text-[9px]" /> Safety Override
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="space-y-2 text-sm text-gray-600 my-3">
@@ -442,6 +506,30 @@ const PrescriptionsPage: React.FC = () => {
               </div>
             )}
 
+            {selectedPrescription.has_safety_warning && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 space-y-2">
+                <div className="flex items-center gap-2 text-amber-800 font-semibold text-xs">
+                  <FaExclamationTriangle className="text-amber-600 shrink-0" />
+                  <span>Clinical Safety Override Applied by Prescribing Physician</span>
+                </div>
+                {selectedPrescription.safety_alerts && selectedPrescription.safety_alerts.length > 0 && (
+                  <div className="space-y-1.5 pt-1">
+                    {selectedPrescription.safety_alerts.map((al, idx) => (
+                      <div key={idx} className="bg-white/80 p-2 rounded-lg border border-amber-200 text-xs">
+                        <span className="font-bold text-amber-900 block">{al.title}</span>
+                        <span className="text-amber-800 text-[11px]">{al.message}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {selectedPrescription.override_reason && (
+                  <div className="text-xs text-amber-900 pt-1.5 border-t border-amber-200">
+                    <span className="font-semibold">Physician Rationale:</span> {selectedPrescription.override_reason}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex justify-between items-center pt-3 border-t border-gray-100">
               <button
                 type="button"
@@ -479,7 +567,7 @@ const PrescriptionsPage: React.FC = () => {
             options={patients.map((pt) => ({
               value: pt.id,
               label: pt.user.full_name,
-              subLabel: pt.user.email,
+              subLabel: `${pt.user.email}${pt.allergies ? ` | Allergies: ${pt.allergies}` : ''}`,
               badge: pt.blood_group ? `Blood: ${pt.blood_group}` : undefined,
               avatarUrl: pt.user.profile_picture,
               avatarInitial: pt.user.full_name?.charAt(0) || 'P',
@@ -491,7 +579,7 @@ const PrescriptionsPage: React.FC = () => {
               <label className="label">Medication Name *</label>
               <input
                 type="text"
-                placeholder="e.g. Amoxicillin, Lisinopril"
+                placeholder="e.g. Amoxicillin, Lisinopril, Warfarin"
                 className="input-field"
                 value={formData.medication_name}
                 onChange={(e) => setFormData({ ...formData, medication_name: e.target.value })}
@@ -510,6 +598,121 @@ const PrescriptionsPage: React.FC = () => {
               />
             </div>
           </div>
+
+          {/* Real-time Drug Safety Alerts Section */}
+          {checkingSafety && (
+            <div className="flex items-center gap-2 text-xs text-slate-500 py-1 px-1">
+              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-teal-600 border-t-transparent" />
+              <span>Analyzing patient allergies and active cross-interactions...</span>
+            </div>
+          )}
+
+          {safetyEvaluation && !checkingSafety && (
+            <div className="my-2">
+              {safetyEvaluation.has_warnings ? (
+                <div
+                  className={`rounded-2xl p-4 space-y-3 border ${
+                    safetyEvaluation.highest_severity === 'critical'
+                      ? 'bg-rose-50 border-rose-200 text-rose-900'
+                      : safetyEvaluation.highest_severity === 'high'
+                      ? 'bg-orange-50 border-orange-200 text-orange-900'
+                      : 'bg-amber-50 border-amber-200 text-amber-900'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <FaExclamationTriangle
+                        className={`text-base ${
+                          safetyEvaluation.highest_severity === 'critical'
+                            ? 'text-rose-600'
+                            : 'text-amber-600'
+                        }`}
+                      />
+                      <h4 className="text-sm font-bold">
+                        Drug Safety Hazard Detected ({safetyEvaluation.alerts.length}{' '}
+                        {safetyEvaluation.alerts.length === 1 ? 'Alert' : 'Alerts'})
+                      </h4>
+                    </div>
+                    <span
+                      className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                        safetyEvaluation.highest_severity === 'critical'
+                          ? 'bg-rose-200 text-rose-800'
+                          : 'bg-amber-200 text-amber-800'
+                      }`}
+                    >
+                      {safetyEvaluation.highest_severity} Severity
+                    </span>
+                  </div>
+
+                  {/* List of alerts */}
+                  <div className="space-y-2">
+                    {safetyEvaluation.alerts.map((alert, idx) => (
+                      <div
+                        key={idx}
+                        className="bg-white/95 rounded-xl p-3 border border-slate-200 text-xs shadow-xs space-y-1"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                            <span
+                              className={`w-2 h-2 rounded-full ${
+                                alert.severity === 'critical'
+                                  ? 'bg-rose-500'
+                                  : alert.severity === 'high'
+                                  ? 'bg-orange-500'
+                                  : 'bg-amber-500'
+                              }`}
+                            />
+                            {alert.title}
+                          </span>
+                          <span className="capitalize text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold">
+                            {alert.type}
+                          </span>
+                        </div>
+                        <p className="text-slate-600 leading-relaxed">{alert.message}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Clinical Override Inputs */}
+                  <div className="pt-2 border-t border-slate-200/80 space-y-2">
+                    <label className="flex items-start gap-2.5 cursor-pointer text-xs font-semibold text-slate-800">
+                      <input
+                        type="checkbox"
+                        checked={acknowledgeWarnings}
+                        onChange={(e) => setAcknowledgeWarnings(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                      />
+                      <span>
+                        Clinical Override: I acknowledge these potential safety risks and authorize
+                        this prescription under clinical monitoring.
+                      </span>
+                    </label>
+
+                    {acknowledgeWarnings && (
+                      <div>
+                        <textarea
+                          rows={2}
+                          required
+                          placeholder="Provide mandatory clinical justification / patient monitoring plan..."
+                          value={overrideReason}
+                          onChange={(e) => setOverrideReason(e.target.value)}
+                          className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs">
+                  <FaCheckCircle className="text-emerald-600 shrink-0" />
+                  <span>
+                    No documented drug allergies or active prescription cross-interactions detected for
+                    this medication.
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>

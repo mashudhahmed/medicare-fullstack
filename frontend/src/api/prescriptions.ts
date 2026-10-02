@@ -1,6 +1,6 @@
 import api from './axios';
 import { ENDPOINTS } from './endpoints';
-import type { Prescription, CreatePrescriptionData, PaginatedResponse } from '../types';
+import type { Prescription, CreatePrescriptionData, DrugSafetyEvaluation, PaginatedResponse } from '../types';
 
 export const prescriptionsApi = {
   getAll: async (params?: Record<string, unknown>): Promise<PaginatedResponse<Prescription> | Prescription[]> => {
@@ -15,6 +15,14 @@ export const prescriptionsApi = {
 
   getById: async (id: string): Promise<Prescription> => {
     const { data } = await api.get(ENDPOINTS.PRESCRIPTIONS.DETAIL(id));
+    return data;
+  },
+
+  checkSafety: async (patientId: string, medicationName: string): Promise<DrugSafetyEvaluation> => {
+    const { data } = await api.post(ENDPOINTS.PRESCRIPTIONS.CHECK_SAFETY, {
+      patient: patientId,
+      medication_name: medicationName,
+    });
     return data;
   },
 

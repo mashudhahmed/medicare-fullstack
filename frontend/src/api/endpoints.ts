@@ -63,6 +63,7 @@ export const ENDPOINTS = {
     MY: '/prescriptions/my/',
     REFILL: (id: string) => `/prescriptions/${id}/refill/`,
     PDF: (id: string) => `/prescriptions/${id}/pdf/`,
+    CHECK_SAFETY: '/prescriptions/check-safety/',
   },
   REVIEWS: {
     LIST: '/reviews/',

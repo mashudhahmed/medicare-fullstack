@@ -1,15 +1,21 @@
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from apps.models.prescription import Prescription
-from apps.schemas.prescription_schema import PrescriptionSerializer, CreatePrescriptionSerializer
+from apps.schemas.prescription_schema import (
+    PrescriptionSerializer,
+    CreatePrescriptionSerializer,
+    DrugSafetyCheckSerializer,
+)
 from apps.core.permissions import IsDoctor, IsPatient
 from apps.services.notification_service import NotificationService
+from apps.services.drug_safety_service import DrugSafetyService
 from apps.utils.audit import log_audit
 
 
 class ListCreatePrescriptionView(generics.ListCreateAPIView):
-    """List all prescriptions or doctor creates a new prescription"""
+    """List all prescriptions or doctor creates a new prescription with drug safety validation"""
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
@@ -30,18 +36,45 @@ class ListCreatePrescriptionView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         user = self.request.user
         if user.role != 'doctor':
-            from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("Only doctors can issue prescriptions.")
 
         doctor = user.doctor_profile
-        prescription = serializer.save(doctor=doctor)
+        patient = serializer.validated_data.get('patient')
+        medication_name = serializer.validated_data.get('medication_name', '')
+        acknowledge_warnings = serializer.validated_data.get('acknowledge_warnings', False)
+        override_reason = serializer.validated_data.get('override_reason', '').strip()
+
+        # Run clinical allergy & cross-interaction safety check
+        evaluation = DrugSafetyService.check_prescription_safety(patient, medication_name)
+
+        if not evaluation['is_safe'] and not acknowledge_warnings:
+            raise ValidationError({
+                'safety_warning': 'Drug safety hazard detected. Review alerts and confirm clinical override.',
+                'safety_evaluation': evaluation,
+            })
+
+        has_warning = evaluation['has_warnings']
+        alerts = evaluation['alerts']
+
+        prescription = serializer.save(
+            doctor=doctor,
+            has_safety_warning=has_warning,
+            safety_alerts=alerts,
+            override_reason=override_reason
+        )
 
         log_audit(
             request=self.request,
-            action='CREATE',
+            action='SAFETY_OVERRIDE' if (has_warning and acknowledge_warnings) else 'CREATE',
             resource_type='Prescription',
             resource_id=prescription.id,
-            details={'medication': prescription.medication_name, 'patient_id': str(prescription.patient.id)}
+            details={
+                'medication': prescription.medication_name,
+                'patient_id': str(prescription.patient.id),
+                'has_safety_warning': has_warning,
+                'alerts_count': len(alerts),
+                'override_reason': override_reason
+            }
         )
 
         NotificationService.send_user_notification(
@@ -50,6 +83,15 @@ class ListCreatePrescriptionView(generics.ListCreateAPIView):
             message=f"Dr. {user.get_full_name()} has prescribed {prescription.medication_name} ({prescription.dosage}).",
             category="MEDICAL"
         )
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        full_serializer = PrescriptionSerializer(serializer.instance)
+        headers = self.get_success_headers(full_serializer.data)
+        return Response(full_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
 
 
 class PrescriptionDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -157,3 +199,18 @@ class PrescriptionPDFView(APIView):
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
+
+
+class CheckDrugSafetyView(APIView):
+    """Real-time pre-prescription safety check for drug allergies and cross-interactions"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = DrugSafetyCheckSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        patient = serializer.validated_data['patient']
+        medication_name = serializer.validated_data['medication_name']
+
+        evaluation = DrugSafetyService.check_prescription_safety(patient, medication_name)
+        return Response(evaluation, status=status.HTTP_200_OK)
+

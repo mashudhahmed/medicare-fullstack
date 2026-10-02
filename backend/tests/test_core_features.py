@@ -281,5 +281,85 @@ class CoreFeaturesTest(TestCase):
         self.assertEqual(len(history_results), 1)
         self.assertEqual(history_results[0]['bp_reading'], '120/80')
 
+    def test_drug_allergy_and_cross_interaction_safety_alerts(self):
+        """Verify allergy detection, drug interaction alerts, and clinical override requirement"""
+        from rest_framework.test import APIClient
+        from apps.models.audit_log import AuditLog
+        client = APIClient()
+        client.force_authenticate(user=self.doctor_user)
+
+        # 1. Update patient with documented penicillin allergy
+        self.patient.allergies = 'Penicillin, Peanuts'
+        self.patient.save()
+
+        # 2. Check safety pre-check endpoint with Amoxicillin (Penicillin class)
+        precheck_resp = client.post('/api/prescriptions/check-safety/', {
+            'patient': str(self.patient.id),
+            'medication_name': 'Amoxicillin 500mg'
+        })
+        self.assertEqual(precheck_resp.status_code, 200)
+        safety_data = precheck_resp.data
+        self.assertFalse(safety_data['is_safe'])
+        self.assertTrue(safety_data['has_warnings'])
+        self.assertEqual(safety_data['highest_severity'], 'critical')
+        self.assertTrue(any(a['type'] == 'allergy' for a in safety_data['alerts']))
+
+        # 3. Attempt to prescribe Amoxicillin without acknowledge_warnings (should fail 400)
+        blocked_resp = client.post('/api/prescriptions/', {
+            'patient': str(self.patient.id),
+            'medication_name': 'Amoxicillin',
+            'dosage': '500mg',
+            'frequency': '3 times daily',
+            'duration_days': 7,
+            'acknowledge_warnings': False
+        })
+        self.assertEqual(blocked_resp.status_code, 400)
+        errors = blocked_resp.data.get('errors', blocked_resp.data)
+        self.assertIn('safety_warning', errors)
+
+        # 4. Prescribe with acknowledge_warnings and override_reason (should succeed 201)
+        override_resp = client.post('/api/prescriptions/', {
+            'patient': str(self.patient.id),
+            'medication_name': 'Amoxicillin',
+            'dosage': '500mg',
+            'frequency': '3 times daily',
+            'duration_days': 7,
+            'acknowledge_warnings': True,
+            'override_reason': 'Patient evaluated in allergy clinic; tolerance confirmed under observation.'
+        })
+        self.assertEqual(override_resp.status_code, 201)
+        rx_data = override_resp.data
+        self.assertTrue(rx_data['has_safety_warning'])
+        self.assertEqual(rx_data['override_reason'], 'Patient evaluated in allergy clinic; tolerance confirmed under observation.')
+        self.assertTrue(len(rx_data['safety_alerts']) > 0)
+
+        # 5. Check audit log for SAFETY_OVERRIDE
+        override_log = AuditLog.objects.filter(action='SAFETY_OVERRIDE', resource_type='Prescription').first()
+        self.assertIsNotNone(override_log)
+
+        # 6. Test drug-drug interaction: active Warfarin + proposed Ibuprofen
+        # Create active Warfarin prescription
+        Prescription.objects.create(
+            patient=self.patient,
+            doctor=self.doctor,
+            medication_name='Warfarin',
+            dosage='5mg',
+            frequency='Once daily',
+            status=Prescription.Status.ACTIVE
+        )
+
+        interaction_check = client.post('/api/prescriptions/check-safety/', {
+            'patient': str(self.patient.id),
+            'medication_name': 'Ibuprofen 400mg'
+        })
+        self.assertEqual(interaction_check.status_code, 200)
+        int_data = interaction_check.data
+        self.assertFalse(int_data['is_safe'])
+        self.assertTrue(any(a['type'] == 'interaction' for a in int_data['alerts']))
+        interaction_alert = next(a for a in int_data['alerts'] if a['type'] == 'interaction')
+        self.assertEqual(interaction_alert['severity'], 'critical')
+        self.assertEqual(interaction_alert['conflict_with'], 'Warfarin')
+
+
 
 

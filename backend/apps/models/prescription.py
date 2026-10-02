@@ -40,6 +40,11 @@ class Prescription(models.Model):
         db_index=True
     )
 
+    # Drug Allergy & Cross-Interaction Safety Alerts
+    has_safety_warning = models.BooleanField(default=False)
+    safety_alerts = models.JSONField(default=list, blank=True)
+    override_reason = models.TextField(blank=True, default='')
+
     is_deleted = models.BooleanField(default=False, db_index=True)
     deleted_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)

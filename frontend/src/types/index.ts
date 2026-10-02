@@ -245,6 +245,9 @@ export interface Prescription {
   refills_allowed: number;
   refills_used: number;
   can_refill?: boolean;
+  has_safety_warning?: boolean;
+  safety_alerts?: DrugSafetyAlert[];
+  override_reason?: string;
   status: 'active' | 'completed' | 'cancelled';
   valid_until?: string;
   created_at: string;
@@ -260,6 +263,27 @@ export interface CreatePrescriptionData {
   duration_days?: number;
   instructions?: string;
   refills_allowed?: number;
+  acknowledge_warnings?: boolean;
+  override_reason?: string;
+}
+
+export interface DrugSafetyAlert {
+  type: 'allergy' | 'interaction' | 'duplicate' | string;
+  severity: 'critical' | 'high' | 'moderate' | 'low';
+  title: string;
+  message: string;
+  allergen?: string;
+  conflict_with?: string;
+  conflicting_prescription_id?: string;
+}
+
+export interface DrugSafetyEvaluation {
+  is_safe: boolean;
+  has_warnings: boolean;
+  highest_severity: 'critical' | 'high' | 'moderate' | 'low' | 'none';
+  alerts: DrugSafetyAlert[];
+  patient_allergies: string;
+  active_medications: { name: string; dosage: string; id: string }[];
 }
 
 // Audit Log Types

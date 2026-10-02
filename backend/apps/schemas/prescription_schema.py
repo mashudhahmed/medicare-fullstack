@@ -29,13 +29,19 @@ class PrescriptionSerializer(serializers.ModelSerializer):
             'refills_used',
             'can_refill',
             'status',
+            'has_safety_warning',
+            'safety_alerts',
+            'override_reason',
             'created_at',
             'updated_at',
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at', 'refills_used']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'refills_used', 'has_safety_warning', 'safety_alerts']
 
 
 class CreatePrescriptionSerializer(serializers.ModelSerializer):
+    acknowledge_warnings = serializers.BooleanField(default=False, required=False, write_only=True)
+    override_reason = serializers.CharField(required=False, allow_blank=True, default='')
+
     class Meta:
         model = Prescription
         fields = [
@@ -47,4 +53,16 @@ class CreatePrescriptionSerializer(serializers.ModelSerializer):
             'duration_days',
             'instructions',
             'refills_allowed',
+            'acknowledge_warnings',
+            'override_reason',
         ]
+
+    def create(self, validated_data):
+        validated_data.pop('acknowledge_warnings', None)
+        return super().create(validated_data)
+
+
+class DrugSafetyCheckSerializer(serializers.Serializer):
+    patient = serializers.PrimaryKeyRelatedField(queryset=Patient.objects.filter(is_deleted=False))
+    medication_name = serializers.CharField(max_length=255)
+
