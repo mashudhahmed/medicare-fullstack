@@ -37,7 +37,7 @@ const Navbar: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <Link to="/" className="text-2xl font-bold text-medicare-teal flex items-center">
-            <span className="bg-medicare-teal text-white rounded-lg px-2 py-1 mr-2 text-sm">MC</span>
+            <img src="/logo.png" alt="MediCare Hub" className="h-9 w-9 rounded-lg object-contain mr-2.5 shadow-sm" />
             MediCare Hub
           </Link>
 

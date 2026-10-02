@@ -56,9 +56,11 @@ const RegisterPage: React.FC = () => {
       <div className="w-full max-w-md">
         {/* Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-teal-600 text-white text-2xl font-bold shadow-lg shadow-teal-600/30 mb-4">
-            M
-          </div>
+          <img
+            src="/logo.png"
+            alt="MediCare Hub"
+            className="inline-block w-16 h-16 rounded-2xl object-contain shadow-lg shadow-teal-600/20 mb-4 bg-white p-1"
+          />
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Create your account</h1>
           <p className="mt-1 text-slate-500 text-sm">Join MediCare Hub to manage your health</p>
         </div>
