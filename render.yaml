@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: medicare-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: ./build.sh
+    startCommand: gunicorn healthcare_project.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: healthcare_project.settings.production
+      - key: PYTHON_VERSION
+        value: 3.11.0
