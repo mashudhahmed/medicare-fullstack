@@ -30,6 +30,16 @@ class RegisterView(generics.CreateAPIView):
 
         refresh = RefreshToken.for_user(user)
 
+        from apps.utils.audit import log_audit
+        log_audit(
+            request=request,
+            action='CREATE',
+            resource_type='User',
+            resource_id=str(user.id),
+            user=user,
+            details={'role': user.role, 'email': user.email, 'action': 'user_registered'}
+        )
+
         return Response({
             'user': UserSerializer(user).data,
             'refresh': str(refresh),
@@ -62,6 +72,16 @@ class LoginView(generics.GenericAPIView):
 
         refresh = RefreshToken.for_user(user)
 
+        from apps.utils.audit import log_audit
+        log_audit(
+            request=request,
+            action='LOGIN',
+            resource_type='User',
+            resource_id=str(user.id),
+            user=user,
+            details={'method': 'password', 'role': user.role, 'email': user.email}
+        )
+
         return Response({
             'user': UserSerializer(user).data,
             'refresh': str(refresh),
@@ -72,15 +92,37 @@ class LoginView(generics.GenericAPIView):
 
 class LogoutView(APIView):
     """User logout endpoint"""
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def post(self, request):
         try:
             refresh_token = request.data.get('refresh')
+            user = request.user if request.user and request.user.is_authenticated else None
+
             if refresh_token:
-                token = RefreshToken(refresh_token)
-                token.blacklist()
+                try:
+                    token = RefreshToken(refresh_token)
+                    if not user:
+                        user_id = token.payload.get('user_id')
+                        if user_id:
+                            user = User.objects.filter(id=user_id, is_deleted=False).first()
+                    token.blacklist()
+                except Exception:
+                    pass
+
             logout(request)
+
+            if user:
+                from apps.utils.audit import log_audit
+                log_audit(
+                    request=request,
+                    action='LOGOUT',
+                    resource_type='User',
+                    resource_id=str(user.id),
+                    user=user,
+                    details={'email': user.email, 'role': user.role}
+                )
+
             return Response({
                 'message': 'Logged out successfully'
             }, status=status.HTTP_200_OK)
@@ -292,7 +334,8 @@ class TwoFactorVerifyView(APIView):
             action='LOGIN',
             resource_type='User',
             resource_id=str(user.id),
-            details={'method': 'totp_2fa'}
+            user=user,
+            details={'method': 'totp_2fa', 'role': user.role, 'email': user.email}
         )
 
         return Response({

@@ -16,9 +16,9 @@ class ListAuditLogsView(generics.ListAPIView):
         user_id = self.request.query_params.get('user_id')
 
         if action:
-            queryset = queryset.filter(action=action)
+            queryset = queryset.filter(action__iexact=action)
         if resource_type:
-            queryset = queryset.filter(resource_type=resource_type)
+            queryset = queryset.filter(resource_type__iexact=resource_type)
         if user_id:
             queryset = queryset.filter(user_id=user_id)
 

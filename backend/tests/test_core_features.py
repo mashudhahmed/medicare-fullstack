@@ -137,3 +137,33 @@ class CoreFeaturesTest(TestCase):
         code_obj.is_used = True
         code_obj.save()
         self.assertFalse(code_obj.is_valid())
+
+    def test_login_and_logout_audit_logging(self):
+        """Verify login and logout create audit log entries with user details"""
+        from rest_framework.test import APIClient
+        client = APIClient()
+
+        # Login
+        response = client.post('/api/auth/login/', {
+            'email': 'patient@medicare.local',
+            'password': 'TestPassword123!',
+        })
+        self.assertEqual(response.status_code, 200)
+        refresh_token = response.data['refresh']
+
+        login_log = AuditLog.objects.filter(action='LOGIN', user=self.patient_user).first()
+        self.assertIsNotNone(login_log)
+        self.assertEqual(login_log.resource_type, 'User')
+        self.assertEqual(login_log.details.get('role'), 'patient')
+        self.assertEqual(login_log.details.get('method'), 'password')
+
+        # Logout
+        logout_response = client.post('/api/auth/logout/', {
+            'refresh': refresh_token
+        }, HTTP_AUTHORIZATION=f"Bearer {response.data['access']}")
+        self.assertEqual(logout_response.status_code, 200)
+
+        logout_log = AuditLog.objects.filter(action='LOGOUT', user=self.patient_user).first()
+        self.assertIsNotNone(logout_log)
+        self.assertEqual(logout_log.resource_type, 'User')
+

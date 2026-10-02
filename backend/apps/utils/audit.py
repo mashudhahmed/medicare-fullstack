@@ -1,12 +1,13 @@
 from apps.models.audit_log import AuditLog
 
 
-def log_audit(request, action, resource_type, resource_id=None, details=None):
+def log_audit(request, action, resource_type, resource_id=None, details=None, user=None):
     """Utility to safely record an audit log entry."""
     try:
-        user = getattr(request, 'user', None)
-        if user and not user.is_authenticated:
-            user = None
+        if user is None:
+            user = getattr(request, 'user', None)
+            if user and not user.is_authenticated:
+                user = None
 
         ip_address = None
         user_agent = None
