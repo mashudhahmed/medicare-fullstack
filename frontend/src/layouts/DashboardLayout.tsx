@@ -21,7 +21,7 @@ import {
 
 const navByRole: Record<string, { to: string; label: string; icon: React.ReactNode }[]> = {
   patient: [
-    { to: '/', label: 'Dashboard', icon: <FaHome /> },
+    { to: '/dashboard', label: 'Dashboard', icon: <FaHome /> },
     { to: '/doctors', label: 'Find Doctors', icon: <FaUserMd /> },
     { to: '/appointments', label: 'Appointments', icon: <FaCalendarAlt /> },
     { to: '/prescriptions', label: 'Prescriptions', icon: <FaPills /> },
@@ -30,7 +30,7 @@ const navByRole: Record<string, { to: string; label: string; icon: React.ReactNo
     { to: '/profile', label: 'Profile', icon: <FaCog /> },
   ],
   doctor: [
-    { to: '/', label: 'Dashboard', icon: <FaHome /> },
+    { to: '/dashboard', label: 'Dashboard', icon: <FaHome /> },
     { to: '/appointments', label: 'Appointments', icon: <FaCalendarAlt /> },
     { to: '/doctor/schedule', label: 'My Schedule', icon: <FaClock /> },
     { to: '/prescriptions', label: 'Prescriptions', icon: <FaPills /> },
@@ -39,7 +39,7 @@ const navByRole: Record<string, { to: string; label: string; icon: React.ReactNo
     { to: '/profile', label: 'Profile', icon: <FaCog /> },
   ],
   admin: [
-    { to: '/', label: 'Dashboard', icon: <FaHome /> },
+    { to: '/dashboard', label: 'Dashboard', icon: <FaHome /> },
     { to: '/admin/users', label: 'Users', icon: <FaUsers /> },
     { to: '/admin/doctors', label: 'Doctors', icon: <FaUserMd /> },
     { to: '/patients', label: 'Patients', icon: <FaUserInjured /> },
@@ -73,7 +73,7 @@ const DashboardLayout: React.FC = () => {
         }`}
       >
         <div className="flex items-center justify-between px-5 py-5 border-b border-slate-700">
-          <Link to="/" className="flex items-center gap-2.5 text-lg font-bold tracking-tight">
+          <Link to="/dashboard" className="flex items-center gap-2.5 text-lg font-bold tracking-tight">
             <img src="/logo.png" alt="MediCare" className="h-8 w-8 rounded-lg object-contain bg-white p-0.5" />
             <span>MediCare</span>
           </Link>
@@ -86,7 +86,7 @@ const DashboardLayout: React.FC = () => {
             <NavLink
               key={item.to}
               to={item.to}
-              end={item.to === '/'}
+              end={item.to === '/dashboard'}
               onClick={() => setOpen(false)}
               className={({ isActive }) =>
                 `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition ${

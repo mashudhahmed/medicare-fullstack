@@ -38,7 +38,7 @@ const LoginPage: React.FC = () => {
           toast.success('Please enter your 6-digit 2FA code.');
         } else {
           toast.success('Welcome back!');
-          navigate('/');
+          navigate('/dashboard');
         }
       } else {
         toast.error(result.error || 'Invalid email or password');
@@ -62,7 +62,7 @@ const LoginPage: React.FC = () => {
       const result = await verify2FA(tempToken, totpCode.trim());
       if (result.success) {
         toast.success('Two-factor verification successful!');
-        navigate('/');
+        navigate('/dashboard');
       } else {
         toast.error(result.error || 'Invalid 2FA verification code.');
       }

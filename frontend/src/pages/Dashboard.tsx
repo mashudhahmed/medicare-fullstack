@@ -68,7 +68,7 @@ const Dashboard: React.FC = () => {
 
   // Removed adminApi.getDashboard() since it doesn't exist
 
-  if (appointmentsQuery.isLoading) return <LoadingSpinner />;
+  if (appointmentsQuery.isLoading && !appointmentsQuery.data) return <LoadingSpinner />;
 
   const appointments = asList<Appointment>(appointmentsQuery.data);
   const upcoming = appointments.filter((a) =>
