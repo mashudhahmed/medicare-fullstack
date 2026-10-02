@@ -1,4 +1,4 @@
-export const APP_NAME = import.meta.env.VITE_APP_NAME || 'MediCare Hub';
+export const APP_NAME = import.meta.env.VITE_APP_NAME || 'MediCare';
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
 export const ROLES = {

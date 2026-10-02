@@ -1,5 +1,5 @@
 # =============================================================================
-# MediCare Hub – Frontend (Node build → Nginx serve)
+# MediCare – Frontend (Node build → Nginx serve)
 # =============================================================================
 FROM node:20-alpine AS builder
 
@@ -14,7 +14,7 @@ COPY . .
 # Build-time env (Vite embeds VITE_* at build time)
 ARG VITE_API_URL=/api/v1
 ARG VITE_WS_BASE_URL=
-ARG VITE_APP_NAME=MediCare Hub
+ARG VITE_APP_NAME=MediCare
 ENV VITE_API_URL=$VITE_API_URL \
     VITE_WS_BASE_URL=$VITE_WS_BASE_URL \
     VITE_APP_NAME=$VITE_APP_NAME \

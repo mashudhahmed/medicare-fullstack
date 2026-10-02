@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="frontend/public/logo.png" alt="MediCare Hub Logo" width="120" style="border-radius: 20px;" />
+  <img src="frontend/public/logo.png" alt="MediCare Logo" width="120" style="border-radius: 20px;" />
 </p>
 
-# MediCare Hub
+# MediCare
 
 An enterprise-grade, full-stack healthcare management and telemedicine platform engineered with Django REST Framework, Django Channels, PostgreSQL, React, TypeScript, and Tailwind CSS.
 
@@ -29,7 +29,7 @@ An enterprise-grade, full-stack healthcare management and telemedicine platform 
 
 ## Overview
 
-MediCare Hub is a unified medical practice management and telehealth solution. The platform connects patients, verified physicians, and system administrators into a single secure ecosystem. It facilitates appointment scheduling, real-time encrypted video consultations, digital prescription tracking with medication refill workflows, electronic medical record management, and live WebSocket notifications.
+MediCare is a unified medical practice management and telehealth solution. The platform connects patients, verified physicians, and system administrators into a single secure ecosystem. It facilitates appointment scheduling, real-time encrypted video consultations, digital prescription tracking with medication refill workflows, electronic medical record management, and live WebSocket notifications.
 
 ---
 
@@ -249,7 +249,7 @@ EMAIL_PORT=587
 EMAIL_USE_TLS=True
 EMAIL_HOST_USER=your-email@gmail.com
 EMAIL_HOST_PASSWORD=your-16-character-app-password
-DEFAULT_FROM_EMAIL=MediCare Hub <noreply@medicare.local>
+DEFAULT_FROM_EMAIL=MediCare <noreply@medicare.local>
 
 # Channels & Redis (Optional for local development; in-memory fallback enabled)
 REDIS_URL=redis://127.0.0.1:6379/1

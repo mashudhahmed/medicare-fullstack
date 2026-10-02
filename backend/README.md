@@ -1,6 +1,6 @@
-# MediCare Hub - Backend Service
+# MediCare - Backend Service
 
-Production-ready, asynchronous REST API and real-time event service for the MediCare Hub enterprise healthcare management platform. Engineered with Django, Django REST Framework (DRF), and Django Channels.
+Production-ready, asynchronous REST API and real-time event service for the MediCare enterprise healthcare management platform. Engineered with Django, Django REST Framework (DRF), and Django Channels.
 
 ---
 
@@ -25,7 +25,7 @@ Production-ready, asynchronous REST API and real-time event service for the Medi
 
 ## Overview
 
-The MediCare Hub backend serves as the central data access and business logic layer for the platform. It provides high-performance RESTful APIs, real-time push events over WebSockets, role-based access management, transactional email delivery, and persistent clinical record tracking.
+The MediCare backend serves as the central data access and business logic layer for the platform. It provides high-performance RESTful APIs, real-time push events over WebSockets, role-based access management, transactional email delivery, and persistent clinical record tracking.
 
 ---
 
@@ -209,7 +209,7 @@ EMAIL_PORT=587
 EMAIL_USE_TLS=True
 EMAIL_HOST_USER=your-account@gmail.com
 EMAIL_HOST_PASSWORD=your-16-char-app-password
-DEFAULT_FROM_EMAIL=MediCare Hub <noreply@medicare.local>
+DEFAULT_FROM_EMAIL=MediCare <noreply@medicare.local>
 
 # Redis Cache and WebSocket Channel Layer (Optional for development)
 REDIS_URL=redis://127.0.0.1:6379/1

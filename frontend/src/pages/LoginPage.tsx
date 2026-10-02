@@ -85,7 +85,7 @@ const LoginPage: React.FC = () => {
         <div className="text-center mb-8">
           <img
             src="/logo.png"
-            alt="MediCare Hub"
+            alt="MediCare"
             className="inline-block w-16 h-16 rounded-2xl object-contain shadow-lg shadow-teal-600/20 mb-4 bg-white p-1"
           />
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
@@ -94,7 +94,7 @@ const LoginPage: React.FC = () => {
           <p className="mt-1 text-slate-500 text-sm">
             {requires2FA
               ? 'Enter the 6-digit code from your authenticator app'
-              : 'Sign in to MediCare Hub'}
+              : 'Sign in to MediCare'}
           </p>
         </div>
 

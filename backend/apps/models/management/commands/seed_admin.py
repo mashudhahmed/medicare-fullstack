@@ -90,7 +90,7 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS(f'Successfully created new Administrator account: {email}'))
 
         self.stdout.write(self.style.MIGRATE_HEADING('\n==================================================='))
-        self.stdout.write(self.style.MIGRATE_HEADING('    MEDICARE HUB — ADMINISTRATOR CREDENTIALS       '))
+        self.stdout.write(self.style.MIGRATE_HEADING('        MEDICARE — ADMINISTRATOR CREDENTIALS       '))
         self.stdout.write(self.style.MIGRATE_HEADING('==================================================='))
         self.stdout.write(f'  Email:     {email}')
         self.stdout.write(f'  Password:  {password}')

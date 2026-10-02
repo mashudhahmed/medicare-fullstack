@@ -37,8 +37,8 @@ const Navbar: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <Link to="/" className="text-2xl font-bold text-medicare-teal flex items-center">
-            <img src="/logo.png" alt="MediCare Hub" className="h-9 w-9 rounded-lg object-contain mr-2.5 shadow-sm" />
-            MediCare Hub
+            <img src="/logo.png" alt="MediCare" className="h-9 w-9 rounded-lg object-contain mr-2.5 shadow-sm" />
+            MediCare
           </Link>
 
           <div className="hidden md:flex items-center space-x-6">
@@ -130,7 +130,7 @@ const Navbar: React.FC = () => {
         onClose={() => setShowLogoutModal(false)}
         onConfirm={handleLogout}
         title="Sign Out"
-        message="Are you sure you want to log out of MediCare Hub? You will need to sign in again to access your account."
+        message="Are you sure you want to log out of MediCare? You will need to sign in again to access your account."
         confirmText="Sign Out"
         cancelText="Cancel"
         variant="danger"

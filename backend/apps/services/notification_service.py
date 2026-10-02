@@ -121,7 +121,7 @@ class NotificationService:
                 "user": user,
                 "title": title,
                 "message": message,
-                "site_name": getattr(settings, "SITE_NAME", "Medicare Hub"),
+                "site_name": getattr(settings, "SITE_NAME", "MediCare"),
                 **(context or {}),
             }
 
@@ -129,7 +129,7 @@ class NotificationService:
             if template_path:
                 html_content = render_to_string(template_path, email_context)
 
-            subject = f"[{getattr(settings, 'SITE_NAME', 'Medicare Hub')}] {title}"
+            subject = f"[{getattr(settings, 'SITE_NAME', 'MediCare')}] {title}"
 
             send_async_email_task.delay(
                 recipient_email=user.email,

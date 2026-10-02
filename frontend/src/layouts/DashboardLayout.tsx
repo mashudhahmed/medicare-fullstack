@@ -74,8 +74,8 @@ const DashboardLayout: React.FC = () => {
       >
         <div className="flex items-center justify-between px-5 py-5 border-b border-slate-700">
           <Link to="/" className="flex items-center gap-2.5 text-lg font-bold tracking-tight">
-            <img src="/logo.png" alt="MediCare Hub" className="h-8 w-8 rounded-lg object-contain bg-white p-0.5" />
-            <span>MediCare Hub</span>
+            <img src="/logo.png" alt="MediCare" className="h-8 w-8 rounded-lg object-contain bg-white p-0.5" />
+            <span>MediCare</span>
           </Link>
           <button className="md:hidden" onClick={() => setOpen(false)}>
             <FaTimes />
@@ -139,7 +139,7 @@ const DashboardLayout: React.FC = () => {
         onClose={() => setShowLogoutModal(false)}
         onConfirm={handleLogout}
         title="Sign Out"
-        message="Are you sure you want to sign out of your MediCare Hub account? You will need to log back in to access your dashboard."
+        message="Are you sure you want to sign out of your MediCare account? You will need to log back in to access your dashboard."
         confirmText="Sign Out"
         cancelText="Cancel"
         variant="danger"

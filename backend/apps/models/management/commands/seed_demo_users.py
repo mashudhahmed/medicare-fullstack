@@ -1,4 +1,4 @@
-﻿import os
+import os
 from datetime import time, date
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -151,7 +151,7 @@ class Command(BaseCommand):
             )
 
         self.stdout.write(self.style.MIGRATE_HEADING('\n======================================================='))
-        self.stdout.write(self.style.MIGRATE_HEADING('       MEDICARE HUB — SEEDED DEMO ACCOUNTS             '))
+        self.stdout.write(self.style.MIGRATE_HEADING('           MEDICARE — SEEDED DEMO ACCOUNTS             '))
         self.stdout.write(self.style.MIGRATE_HEADING('======================================================='))
         self.stdout.write(self.style.SUCCESS('[ADMINISTRATOR]'))
         self.stdout.write(f'  Email:     {admin_email}')

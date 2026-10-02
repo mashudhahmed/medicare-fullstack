@@ -1,5 +1,5 @@
 # =============================================================================
-# MediCare Hub – Backend (multi-stage, non-root, production-ready)
+# MediCare – Backend (multi-stage, non-root, production-ready)
 # =============================================================================
 FROM python:3.12-slim AS builder
 

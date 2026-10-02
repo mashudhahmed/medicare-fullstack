@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="public/logo.png" alt="MediCare Hub Logo" width="120" style="border-radius: 20px;" />
+  <img src="public/logo.png" alt="MediCare Logo" width="120" style="border-radius: 20px;" />
 </p>
 
-# MediCare Hub - Frontend Application
+# MediCare - Frontend Application
 
-Modern, type-safe single page application (SPA) for the MediCare Hub enterprise healthcare management and telemedicine platform. Engineered with React 18, TypeScript, Vite, and Tailwind CSS.
+Modern, type-safe single page application (SPA) for the MediCare enterprise healthcare management and telemedicine platform. Engineered with React 18, TypeScript, Vite, and Tailwind CSS.
 
 ---
 
@@ -29,7 +29,7 @@ Modern, type-safe single page application (SPA) for the MediCare Hub enterprise 
 
 ## Overview
 
-The MediCare Hub frontend provides a clean, responsive, and accessible interface for patients, healthcare providers, and platform administrators. Built on a component-driven architecture, it delivers real-time notifications, telemedicine consultations, electronic medical record management, and appointment scheduling with enterprise-grade security and input validation.
+The MediCare frontend provides a clean, responsive, and accessible interface for patients, healthcare providers, and platform administrators. Built on a component-driven architecture, it delivers real-time notifications, telemedicine consultations, electronic medical record management, and appointment scheduling with enterprise-grade security and input validation.
 
 ---
 

@@ -1,5 +1,5 @@
 # =============================================================================
-# MediCare Hub – Production Compose
+# MediCare – Production Compose
 # Usage:
 #   cp .env.example .env.production   # then fill real secrets
 #   docker compose -f docker-compose.production.yml up -d --build

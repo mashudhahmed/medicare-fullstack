@@ -174,7 +174,7 @@ class PasswordResetRequestView(generics.GenericAPIView):
 
         email_message = (
             f"Hello {user.get_full_name()},\n\n"
-            f"Your MediCare Hub password reset verification code is:\n\n"
+            f"Your MediCare password reset verification code is:\n\n"
             f"    {reset_code.code}\n\n"
             f"This code will expire in 15 minutes.\n\n"
             f"Alternatively, you can click the link below to reset your password directly:\n"
@@ -183,7 +183,7 @@ class PasswordResetRequestView(generics.GenericAPIView):
         )
 
         send_mail(
-            subject="Password Reset Code - MediCare Hub",
+            subject="Password Reset Code - MediCare",
             message=email_message,
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[user.email],
@@ -317,7 +317,7 @@ class TwoFactorSetupView(APIView):
         secret = pyotp.random_base32()
         uri = pyotp.totp.TOTP(secret).provisioning_uri(
             name=user.email,
-            issuer_name="MediCare Hub"
+            issuer_name="MediCare"
         )
 
         qr = qrcode.QRCode(box_size=6, border=2)

@@ -25,7 +25,7 @@ ALLOWED_HOSTS = [
     if h.strip()
 ]
 
-SITE_NAME = os.getenv('SITE_NAME', 'Medicare Hub')
+SITE_NAME = os.getenv('SITE_NAME', 'MediCare')
 
 # ---------------------------------------------------------------------------
 # Applications

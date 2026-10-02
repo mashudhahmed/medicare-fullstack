@@ -58,11 +58,11 @@ const RegisterPage: React.FC = () => {
         <div className="text-center mb-8">
           <img
             src="/logo.png"
-            alt="MediCare Hub"
+            alt="MediCare"
             className="inline-block w-16 h-16 rounded-2xl object-contain shadow-lg shadow-teal-600/20 mb-4 bg-white p-1"
           />
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Create your account</h1>
-          <p className="mt-1 text-slate-500 text-sm">Join MediCare Hub to manage your health</p>
+          <p className="mt-1 text-slate-500 text-sm">Join MediCare to manage your health</p>
         </div>
 
         {/* Card */}
@@ -165,7 +165,7 @@ const RegisterPage: React.FC = () => {
         </div>
 
         <p className="text-center mt-6 text-xs text-slate-400">
-          By registering you agree to MediCare Hub terms of service.
+          By registering you agree to MediCare terms of service.
         </p>
       </div>
     </div>
