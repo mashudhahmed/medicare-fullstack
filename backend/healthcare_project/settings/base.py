@@ -337,6 +337,10 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.services.celery_tasks.send_appointment_reminders',
         'schedule': crontab(hour=8, minute=0),
     },
+    'send-same-day-appointment-reminders': {
+        'task': 'apps.services.celery_tasks.send_same_day_reminders',
+        'schedule': crontab(minute='*/30'),
+    },
 }
 
 # ---------------------------------------------------------------------------

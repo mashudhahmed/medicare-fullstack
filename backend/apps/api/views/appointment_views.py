@@ -281,3 +281,51 @@ class RescheduleAppointmentView(APIView):
             'message': 'Appointment rescheduled successfully',
             'appointment': AppointmentSerializer(appointment).data
         }, status=status.HTTP_200_OK)
+
+
+class SendAppointmentReminderView(APIView):
+    """Doctor or admin manually triggers an instant reminder for an upcoming appointment"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            appointment = Appointment.objects.select_related(
+                'patient__user', 'doctor__user'
+            ).get(id=pk, is_deleted=False)
+        except Appointment.DoesNotExist:
+            return Response({'error': 'Appointment not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        user = request.user
+        if not (user.role == 'admin' or (user.role == 'doctor' and appointment.doctor.user == user)):
+            return Response({'error': 'Only prescribing doctor or administrator can send reminders'}, status=status.HTTP_403_FORBIDDEN)
+
+        from apps.services.celery_tasks import send_single_appointment_reminder
+        send_single_appointment_reminder(appointment)
+
+        return Response({
+            'message': 'Reminder dispatched successfully to patient and doctor.',
+            'reminder_sent': appointment.reminder_sent,
+            'reminder_sent_at': appointment.reminder_sent_at,
+        }, status=status.HTTP_200_OK)
+
+
+class TriggerBatchRemindersView(APIView):
+    """Admin triggers batch Celery reminder evaluations"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        if request.user.role != 'admin':
+            return Response({'error': 'Admin permissions required'}, status=status.HTTP_403_FORBIDDEN)
+
+        from apps.services.celery_tasks import send_appointment_reminders, send_same_day_reminders
+        r24 = send_appointment_reminders()
+        rsame = send_same_day_reminders()
+
+        return Response({
+            'message': 'Reminders processed successfully.',
+            'results': {
+                '24h_reminders': r24,
+                'same_day_reminders': rsame,
+            }
+        }, status=status.HTTP_200_OK)
+

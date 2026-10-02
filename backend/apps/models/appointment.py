@@ -26,6 +26,10 @@ class Appointment(models.Model):
     notes = models.TextField(blank=True, null=True)
     video_room_id = models.CharField(max_length=100, blank=True, null=True)
 
+    # Automated Appointment Reminder Tracking
+    reminder_sent = models.BooleanField(default=False, db_index=True)
+    reminder_sent_at = models.DateTimeField(null=True, blank=True)
+
     is_deleted = models.BooleanField(default=False, db_index=True)
     deleted_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -413,6 +413,48 @@ class CoreFeaturesTest(TestCase):
         self.assertEqual(len(patient_thread.data), 2)
         self.assertEqual(patient_thread.data[1]['content'], 'Take 10mg once daily in the morning with a glass of water.')
 
+    def test_celery_appointment_reminders_and_duplicate_prevention(self):
+        """Verify 24-hour reminder dispatch, reminder_sent flag update, duplicate prevention, and manual trigger"""
+        from rest_framework.test import APIClient
+        from apps.services.celery_tasks import send_appointment_reminders, send_same_day_reminders
+        from apps.models.notification import Notification
+
+        # 1. Create upcoming confirmed appointment in 24h window
+        appt_24h = Appointment.objects.create(
+            patient=self.patient,
+            doctor=self.doctor,
+            appointment_date=timezone.now() + timezone.timedelta(hours=24),
+            reason='Cardiology follow-up checkup',
+            status='confirmed',
+            reminder_sent=False
+        )
+
+        # 2. Run Celery reminder task
+        res_24 = send_appointment_reminders()
+        self.assertIn('Dispatched 1', res_24)
+
+        # 3. Verify reminder_sent is set to True
+        appt_24h.refresh_from_db()
+        self.assertTrue(appt_24h.reminder_sent)
+        self.assertIsNotNone(appt_24h.reminder_sent_at)
+
+        # 4. Verify notification was created
+        notif = Notification.objects.filter(user=self.patient_user).order_by('-created_at').first()
+        self.assertIsNotNone(notif)
+        self.assertIn('Upcoming Appointment Reminder', notif.title)
+
+        # 5. Run Celery reminder task again (Duplicate prevention: should dispatch 0)
+        res_dup = send_appointment_reminders()
+        self.assertIn('Dispatched 0', res_dup)
+
+        # 6. Test manual trigger endpoint by doctor
+        client = APIClient()
+        client.force_authenticate(user=self.doctor_user)
+        trigger_resp = client.post(f'/api/appointments/{appt_24h.id}/send-reminder/')
+        self.assertEqual(trigger_resp.status_code, 200)
+        self.assertTrue(trigger_resp.data['reminder_sent'])
+
+
 
 
 

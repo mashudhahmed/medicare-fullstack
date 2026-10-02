@@ -17,9 +17,10 @@ class AppointmentSerializer(serializers.ModelSerializer):
             'id', 'patient', 'patient_details', 'doctor', 'doctor_details',
             'appointment_date', 'duration_minutes', 'status',
             'reason', 'notes', 'video_room_id',
+            'reminder_sent', 'reminder_sent_at',
             'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'video_room_id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'video_room_id', 'reminder_sent', 'reminder_sent_at', 'created_at', 'updated_at']
 
 
 class CreateAppointmentSerializer(serializers.ModelSerializer):

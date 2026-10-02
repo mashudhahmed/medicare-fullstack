@@ -57,6 +57,16 @@ export const appointmentsApi = {
     const { data } = await api.get(`/appointments/${id}/video/`);
     return data;
   },
+
+  sendReminder: async (id: string): Promise<{ message: string; reminder_sent: boolean; reminder_sent_at: string }> => {
+    const { data } = await api.post(ENDPOINTS.APPOINTMENTS.SEND_REMINDER(id));
+    return data;
+  },
+
+  triggerBatchReminders: async (): Promise<any> => {
+    const { data } = await api.post(ENDPOINTS.APPOINTMENTS.TRIGGER_BATCH_REMINDERS);
+    return data;
+  },
 };
 
 export default appointmentsApi;

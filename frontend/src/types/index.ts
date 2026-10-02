@@ -108,6 +108,8 @@ export interface Appointment {
   status: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
   reason: string;
   notes?: string;
+  reminder_sent?: boolean;
+  reminder_sent_at?: string;
   created_at: string;
   updated_at: string;
 }

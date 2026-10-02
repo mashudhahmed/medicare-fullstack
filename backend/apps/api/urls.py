@@ -51,6 +51,8 @@ urlpatterns = [
     path('appointments/<uuid:pk>/cancel/', appointment_views.CancelAppointmentView.as_view(), name='appointment-cancel'),
     path('appointments/<uuid:pk>/reschedule/', appointment_views.RescheduleAppointmentView.as_view(), name='appointment-reschedule'),
     path('appointments/<uuid:pk>/video/', appointment_views.JoinVideoConsultationView.as_view(), name='appointment-video'),
+    path('appointments/<uuid:pk>/send-reminder/', appointment_views.SendAppointmentReminderView.as_view(), name='appointment-send-reminder'),
+    path('appointments/trigger-reminders/', appointment_views.TriggerBatchRemindersView.as_view(), name='appointment-trigger-reminders'),
     path('appointments/my/', appointment_views.MyAppointmentsView.as_view(), name='my-appointments'),
     path('appointments/available-slots/<uuid:doctor_id>/', appointment_views.AvailableSlotsView.as_view(), name='available-slots'),
 

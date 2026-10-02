@@ -4,7 +4,7 @@ import { appointmentsApi } from '../api/appointments';
 import { doctorsApi } from '../api/doctors';
 import { Appointment, Doctor, CreateAppointmentData } from '../types';
 import { useAuth } from '../hooks/useAuth';
-import { FaCalendar, FaClock, FaStethoscope, FaTimes, FaPlus, FaVideo, FaStar, FaComments } from 'react-icons/fa';
+import { FaCalendar, FaClock, FaStethoscope, FaTimes, FaPlus, FaVideo, FaStar, FaComments, FaBell } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { Modal, ConfirmModal, SearchableSelect } from '../components/ui';
 import VideoConsultationModal from '../components/video/VideoConsultationModal';
@@ -23,6 +23,7 @@ const AppointmentsPage: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [cancellingApptId, setCancellingApptId] = useState<string | null>(null);
   const [videoApptId, setVideoApptId] = useState<string | null>(null);
+  const [sendingReminderId, setSendingReminderId] = useState<string | null>(null);
   const [formData, setFormData] = useState<CreateAppointmentData>({
     doctor: '',
     appointment_date: '',
@@ -142,6 +143,23 @@ const AppointmentsPage: React.FC = () => {
     return colors[status] || 'badge-secondary';
   };
 
+  const handleSendReminder = async (appointmentId: string) => {
+    try {
+      setSendingReminderId(appointmentId);
+      const res = await appointmentsApi.sendReminder(appointmentId);
+      toast.success(res.message || 'Reminder dispatched to patient.');
+      setAppointments((prev) =>
+        prev.map((a) =>
+          a.id === appointmentId ? { ...a, reminder_sent: true, reminder_sent_at: res.reminder_sent_at } : a
+        )
+      );
+    } catch {
+      toast.error('Failed to send reminder');
+    } finally {
+      setSendingReminderId(null);
+    }
+  };
+
   if (loading) return <LoadingSpinner />;
 
   return (
@@ -175,6 +193,11 @@ const AppointmentsPage: React.FC = () => {
                   <span className={`badge ${getStatusColor(appointment.status)}`}>
                     {appointment.status}
                   </span>
+                  {appointment.reminder_sent && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-teal-700 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-full">
+                      <FaBell className="text-[10px]" /> Reminder Sent
+                    </span>
+                  )}
                 </div>
                 <div className="text-sm text-gray-600 mt-2 space-y-1">
                   <p>
@@ -210,6 +233,22 @@ const AppointmentsPage: React.FC = () => {
                     <FaComments className="mr-1.5 text-teal-600" /> Chat
                   </Link>
                 )}
+                {(user?.role === 'doctor' || user?.role === 'admin') &&
+                  appointment.status === 'confirmed' && (
+                    <button
+                      onClick={() => handleSendReminder(appointment.id)}
+                      disabled={sendingReminderId === appointment.id}
+                      className="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 px-3 py-1.5 rounded-lg text-sm flex items-center font-medium transition shadow-sm disabled:opacity-50"
+                      title="Dispatch automated reminder"
+                    >
+                      <FaBell className="mr-1.5 text-amber-600" />
+                      {sendingReminderId === appointment.id
+                        ? 'Sending...'
+                        : appointment.reminder_sent
+                        ? 'Resend'
+                        : 'Send Reminder'}
+                    </button>
+                  )}
                 {appointment.status === 'completed' && user?.role === 'patient' && (
                   <Link
                     to={`/doctors/${appointment.doctor}`}

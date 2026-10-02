@@ -31,6 +31,8 @@ export const ENDPOINTS = {
     CANCEL: (id: string) => `/appointments/${id}/cancel/`,
     MY: '/appointments/my/',
     SLOTS: (doctorId: string) => `/appointments/available-slots/${doctorId}/`,
+    SEND_REMINDER: (id: string) => `/appointments/${id}/send-reminder/`,
+    TRIGGER_BATCH_REMINDERS: '/appointments/trigger-reminders/',
   },
   BILLING: {
     LIST: '/billing/',
