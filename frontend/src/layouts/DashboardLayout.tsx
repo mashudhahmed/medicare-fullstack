@@ -196,8 +196,11 @@ const DashboardLayout: React.FC = () => {
           </button>
         </div>
 
-        {/* Scrollable Navigation Body */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
+        {/* Scrollable Navigation Body (Scrollbar Hidden) */}
+        <nav
+          className="flex-1 overflow-y-auto px-3 py-4 space-y-5 no-scrollbar"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
           {sections.map((section) => (
             <div key={section.title} className="space-y-1">
               <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
