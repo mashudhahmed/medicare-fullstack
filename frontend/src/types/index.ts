@@ -90,6 +90,8 @@ export interface Doctor {
   available_days?: string[];
   available_time_start?: string;
   available_time_end?: string;
+  average_rating?: number;
+  total_reviews?: number;
   created_at: string;
   updated_at: string;
 }
@@ -273,6 +275,28 @@ export interface AuditLog {
   user_agent?: string;
   details?: Record<string, unknown>;
   timestamp: string;
+}
+
+// Doctor Review Types
+export interface DoctorReview {
+  id: string;
+  doctor: string;
+  patient: string;
+  appointment?: string;
+  rating: number;
+  comment: string;
+  patient_name: string;
+  patient_avatar?: string;
+  doctor_name?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateDoctorReviewData {
+  doctor: string;
+  appointment?: string;
+  rating: number;
+  comment?: string;
 }
 
 

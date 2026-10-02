@@ -50,6 +50,16 @@ class Doctor(models.Model):
     def __str__(self):
         return f"Dr. {self.user.full_name} ({self.specialty})"
 
+    @property
+    def average_rating(self) -> float:
+        from django.db.models import Avg
+        res = self.reviews.filter(is_deleted=False).aggregate(Avg('rating'))['rating__avg']
+        return round(float(res), 1) if res is not None else 0.0
+
+    @property
+    def total_reviews(self) -> int:
+        return self.reviews.filter(is_deleted=False).count()
+
     def soft_delete(self):
         self.is_deleted = True
         self.deleted_at = timezone.now()

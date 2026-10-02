@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import auth_views
 from .views import admin_views, patient_views, doctor_views, appointment_views, billing_views, medical_record_views
-from .views import notification_views, prescription_views, audit_views, upload_views
+from .views import notification_views, prescription_views, audit_views, upload_views, review_views
 
 app_name = 'api'
 
@@ -78,6 +78,11 @@ urlpatterns = [
     path('notifications/', notification_views.NotificationListView.as_view(), name='notifications'),
     path('notifications/<uuid:pk>/read/', notification_views.MarkNotificationReadView.as_view(), name='notification-read'),
     path('notifications/read-all/', notification_views.MarkAllNotificationsReadView.as_view(), name='notifications-read-all'),
+
+    # Doctor Reviews & Ratings
+    path('reviews/', review_views.ListCreateReviewView.as_view(), name='review-list'),
+    path('reviews/<uuid:pk>/', review_views.ReviewDetailView.as_view(), name='review-detail'),
+    path('doctors/<uuid:doctor_id>/reviews/', review_views.DoctorReviewsView.as_view(), name='doctor-reviews'),
 
     # File & Image Uploads (Cloudinary)
     path('auth/avatar/', upload_views.AvatarUploadView.as_view(), name='avatar-upload'),

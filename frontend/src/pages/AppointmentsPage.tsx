@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { appointmentsApi } from '../api/appointments';
 import { doctorsApi } from '../api/doctors';
 import { Appointment, Doctor, CreateAppointmentData } from '../types';
 import { useAuth } from '../hooks/useAuth';
-import { FaCalendar, FaClock, FaStethoscope, FaTimes, FaPlus, FaVideo } from 'react-icons/fa';
+import { FaCalendar, FaClock, FaStethoscope, FaTimes, FaPlus, FaVideo, FaStar } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { Modal, ConfirmModal, SearchableSelect } from '../components/ui';
 import VideoConsultationModal from '../components/video/VideoConsultationModal';
@@ -195,6 +196,15 @@ const AppointmentsPage: React.FC = () => {
                   >
                     <FaVideo className="mr-1.5" /> Video Call
                   </button>
+                )}
+                {appointment.status === 'completed' && user?.role === 'patient' && (
+                  <Link
+                    to={`/doctors/${appointment.doctor}`}
+                    className="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 px-3 py-1.5 rounded-lg text-sm flex items-center font-medium transition shadow-sm"
+                    title="Rate and review your doctor"
+                  >
+                    <FaStar className="mr-1.5 text-amber-500" /> Review Doctor
+                  </Link>
                 )}
                 {appointment.status !== 'cancelled' && appointment.status !== 'completed' && (
                   <button

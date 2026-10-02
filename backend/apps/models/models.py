@@ -8,6 +8,7 @@ from .notification import Notification
 from .prescription import Prescription
 from .audit_log import AuditLog
 from .password_reset import PasswordResetCode
+from .review import DoctorReview
 
 __all__ = [
     'User',
@@ -20,4 +21,5 @@ __all__ = [
     'Prescription',
     'AuditLog',
     'PasswordResetCode',
+    'DoctorReview',
 ]

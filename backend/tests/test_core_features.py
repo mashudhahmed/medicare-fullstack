@@ -211,3 +211,36 @@ class CoreFeaturesTest(TestCase):
         self.assertTrue(len(response.content) > 500)
         self.assertTrue(response.content.startswith(b'%PDF'))
 
+    def test_doctor_review_creation_and_rating_calculation(self):
+        """Verify patient can review a doctor and doctor rating updates"""
+        from rest_framework.test import APIClient
+        from apps.models.review import DoctorReview
+        client = APIClient()
+        client.force_authenticate(user=self.patient_user)
+
+        # Submit review
+        response = client.post('/api/reviews/', {
+            'doctor': str(self.doctor.id),
+            'rating': 5,
+            'comment': 'Outstanding cardiologist, very thorough and compassionate.'
+        })
+        self.assertEqual(response.status_code, 201)
+
+        # Check review was created in DB
+        self.assertEqual(DoctorReview.objects.count(), 1)
+        review = DoctorReview.objects.first()
+        self.assertEqual(review.rating, 5)
+        self.assertEqual(review.patient, self.patient)
+
+        # Check doctor computed properties
+        self.assertEqual(self.doctor.total_reviews, 1)
+        self.assertEqual(self.doctor.average_rating, 5.0)
+
+        # Check doctor reviews endpoint
+        list_resp = client.get(f'/api/doctors/{self.doctor.id}/reviews/')
+        self.assertEqual(list_resp.status_code, 200)
+        results = list_resp.data if isinstance(list_resp.data, list) else list_resp.data.get('results', [])
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]['rating'], 5)
+
+
