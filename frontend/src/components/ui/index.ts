@@ -6,5 +6,7 @@ export { default as Skeleton } from './Skeleton';
 export { default as SkeletonCard } from './SkeletonCard';
 export { default as Modal } from './Modal';
 export { default as ConfirmModal } from './ConfirmModal';
+export { default as SearchableSelect } from './SearchableSelect';
 export * from './Modal';
 export * from './ConfirmModal';
+export * from './SearchableSelect';

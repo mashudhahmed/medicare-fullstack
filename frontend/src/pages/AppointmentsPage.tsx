@@ -5,7 +5,7 @@ import { Appointment, Doctor, CreateAppointmentData } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import { FaCalendar, FaClock, FaStethoscope, FaTimes, FaPlus, FaVideo } from 'react-icons/fa';
 import toast from 'react-hot-toast';
-import { Modal, ConfirmModal } from '../components/ui';
+import { Modal, ConfirmModal, SearchableSelect } from '../components/ui';
 import VideoConsultationModal from '../components/video/VideoConsultationModal';
 
 const LoadingSpinner: React.FC = () => (
@@ -219,24 +219,22 @@ const AppointmentsPage: React.FC = () => {
         size="md"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="label">Doctor</label>
-            <select
-              className="input-field"
-              value={formData.doctor}
-              onChange={(e) =>
-                setFormData({ ...formData, doctor: e.target.value })
-              }
-              required
-            >
-              <option value="">Select a doctor</option>
-              {doctors.map((doctor) => (
-                <option key={doctor.id} value={doctor.id}>
-                  Dr. {doctor.user.full_name} - {doctor.specialty}
-                </option>
-              ))}
-            </select>
-          </div>
+          <SearchableSelect
+            label="Doctor"
+            placeholder="Select a doctor..."
+            searchPlaceholder="Search doctor by name or specialty..."
+            required
+            value={formData.doctor}
+            onChange={(val) => setFormData({ ...formData, doctor: val })}
+            options={doctors.map((doctor) => ({
+              value: doctor.id,
+              label: `Dr. ${doctor.user.full_name}`,
+              subLabel: doctor.qualification ? `${doctor.qualification} • ${doctor.experience_years} yrs exp` : undefined,
+              badge: doctor.specialty,
+              avatarUrl: doctor.user.profile_picture,
+              avatarInitial: doctor.user.full_name?.charAt(0) || 'D',
+            }))}
+          />
           <div>
             <label className="label">Appointment Date</label>
             <input

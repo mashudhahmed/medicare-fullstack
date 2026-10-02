@@ -4,8 +4,7 @@ import { patientsApi } from '../api/patients';
 import { uploadApi } from '../api/upload';
 import { MedicalRecord, Patient } from '../types';
 import { useAuth } from '../hooks/useAuth';
-import LoadingSpinner from '../components/ui/LoadingSpinner';
-import { Modal } from '../components/ui';
+import { Modal, SearchableSelect, LoadingSpinner } from '../components/ui';
 import { FaFileMedical, FaCalendar, FaUserMd, FaPlus, FaDownload, FaPaperclip, FaTimes, FaImage } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
@@ -235,24 +234,22 @@ const MedicalRecordsPage: React.FC = () => {
       >
         <form onSubmit={handleAddSubmit} className="space-y-4">
           {(user?.role === 'doctor' || user?.role === 'admin') && (
-            <div>
-              <label className="label">Patient</label>
-              <select
-                className="input-field"
-                value={formData.patient}
-                onChange={(e) =>
-                  setFormData({ ...formData, patient: e.target.value })
-                }
-                required
-              >
-                <option value="">Select a patient</option>
-                {patients.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.user?.full_name || p.user?.email || p.id}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <SearchableSelect
+              label="Patient"
+              placeholder="Select a patient..."
+              searchPlaceholder="Search patient by name or email..."
+              required
+              value={formData.patient}
+              onChange={(val) => setFormData({ ...formData, patient: val })}
+              options={patients.map((p) => ({
+                value: p.id,
+                label: p.user?.full_name || p.user?.email || 'Unknown Patient',
+                subLabel: p.user?.email,
+                badge: p.blood_group ? `Blood: ${p.blood_group}` : undefined,
+                avatarUrl: p.user?.profile_picture,
+                avatarInitial: p.user?.full_name?.charAt(0) || 'P',
+              }))}
+            />
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

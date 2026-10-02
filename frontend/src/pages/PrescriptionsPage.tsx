@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { prescriptionsApi } from '../api/prescriptions';
 import { patientsApi } from '../api/patients';
 import { Prescription, Patient, CreatePrescriptionData } from '../types';
@@ -16,7 +16,7 @@ import {
   FaInfoCircle,
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
-import { Modal, ConfirmModal } from '../components/ui';
+import { Modal, ConfirmModal, SearchableSelect } from '../components/ui';
 
 const LoadingSpinner: React.FC = () => (
   <div className="flex items-center justify-center py-12" role="status" aria-label="Loading">
@@ -441,22 +441,22 @@ const PrescriptionsPage: React.FC = () => {
         size="lg"
       >
         <form onSubmit={handleIssueSubmit} className="space-y-4">
-          <div>
-            <label className="label">Select Patient *</label>
-            <select
-              className="input-field"
-              value={formData.patient}
-              onChange={(e) => setFormData({ ...formData, patient: e.target.value })}
-              required
-            >
-              <option value="">Choose a patient</option>
-              {patients.map((pt) => (
-                <option key={pt.id} value={pt.id}>
-                  {pt.user.full_name} ({pt.user.email})
-                </option>
-              ))}
-            </select>
-          </div>
+          <SearchableSelect
+            label="Select Patient"
+            placeholder="Choose a patient..."
+            searchPlaceholder="Search patient by name or email..."
+            required
+            value={formData.patient}
+            onChange={(val) => setFormData({ ...formData, patient: val })}
+            options={patients.map((pt) => ({
+              value: pt.id,
+              label: pt.user.full_name,
+              subLabel: pt.user.email,
+              badge: pt.blood_group ? `Blood: ${pt.blood_group}` : undefined,
+              avatarUrl: pt.user.profile_picture,
+              avatarInitial: pt.user.full_name?.charAt(0) || 'P',
+            }))}
+          />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
