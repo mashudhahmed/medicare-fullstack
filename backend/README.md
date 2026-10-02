@@ -213,6 +213,13 @@ DEFAULT_FROM_EMAIL=MediCare <noreply@medicare.local>
 
 # Redis Cache and WebSocket Channel Layer (Optional for development)
 REDIS_URL=redis://127.0.0.1:6379/1
+
+# Cloudinary (Media & Image Uploads)
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+# Alternatively, provide full connection string:
+# CLOUDINARY_URL=cloudinary://<api_key>:<api_secret>@<cloud_name>
 ```
 
 ---
@@ -340,6 +347,15 @@ All endpoints are namespaced under `/api/v1/`.
 | GET | `/api/v1/notifications/` | HTTP | Retrieve notification history |
 | PATCH | `/api/v1/notifications/{id}/read/` | HTTP | Mark single notification as read |
 | POST | `/api/v1/notifications/read-all/` | HTTP | Mark all user notifications as read |
+
+### Cloudinary Media & Avatar Uploads
+
+| Method | Endpoint | Permission | Description |
+|---|---|---|---|
+| POST | `/api/v1/auth/avatar/` | IsAuthenticated | Upload user profile picture to Cloudinary |
+| DELETE | `/api/v1/auth/avatar/` | IsAuthenticated | Remove avatar and delete asset from Cloudinary |
+| POST | `/api/v1/upload/image/` | IsAuthenticated | Upload image or medical document (lab test, scan) |
+| POST | `/api/v1/upload/delete/` | IsAuthenticated | Remove file from Cloudinary by public ID |
 
 ---
 

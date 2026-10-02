@@ -65,4 +65,9 @@ export const ENDPOINTS = {
   AUDIT_LOGS: {
     LIST: '/admin/audit-logs/',
   },
+  UPLOAD: {
+    AVATAR: '/auth/avatar/',
+    IMAGE: '/upload/image/',
+    DELETE: '/upload/delete/',
+  },
 } as const;

@@ -100,10 +100,26 @@ const DashboardLayout: React.FC = () => {
           ))}
         </nav>
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-700">
-          <div className="text-xs text-slate-400 mb-2 truncate">{user?.email}</div>
+          <div className="flex items-center gap-2.5 mb-2">
+            {user?.profile_picture ? (
+              <img
+                src={user.profile_picture}
+                alt={user.full_name}
+                className="w-8 h-8 rounded-full object-cover border border-slate-600"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-teal-600 text-white flex items-center justify-center font-bold text-xs">
+                {user?.full_name?.charAt(0) || 'U'}
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium text-slate-200 truncate">{user?.full_name}</p>
+              <p className="text-[11px] text-slate-400 truncate">{user?.email}</p>
+            </div>
+          </div>
           <button
             onClick={() => setShowLogoutModal(true)}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 transition-colors"
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800 transition-colors"
           >
             <FaSignOutAlt /> Logout
           </button>
@@ -117,12 +133,27 @@ const DashboardLayout: React.FC = () => {
             <FaBars size={20} />
           </button>
           <div className="flex-1">
-            <p className="text-sm text-slate-500">Welcome back</p>
-            <p className="font-semibold text-slate-800">{user?.full_name}</p>
+            <p className="text-xs text-slate-500">Welcome back</p>
+            <p className="font-semibold text-slate-800 leading-tight">{user?.full_name}</p>
           </div>
-          <span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-medium capitalize text-teal-700">
-            {user?.role}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-medium capitalize text-teal-700">
+              {user?.role}
+            </span>
+            <Link to="/profile" title="View Profile" className="relative block">
+              {user?.profile_picture ? (
+                <img
+                  src={user.profile_picture}
+                  alt={user.full_name}
+                  className="w-9 h-9 rounded-full object-cover border border-teal-500 hover:ring-2 hover:ring-teal-400 transition"
+                />
+              ) : (
+                <div className="w-9 h-9 rounded-full bg-teal-600 text-white flex items-center justify-center font-bold text-sm hover:bg-teal-700 transition">
+                  {user?.full_name?.charAt(0) || 'U'}
+                </div>
+              )}
+            </Link>
+          </div>
         </header>
         <main className="p-4 md:p-6 max-w-7xl mx-auto">
           <Outlet />

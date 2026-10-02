@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { medicalRecordsApi } from '../api/medical-records';
 import { patientsApi } from '../api/patients';
+import { uploadApi } from '../api/upload';
 import { MedicalRecord, Patient } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import { Modal } from '../components/ui';
-import { FaFileMedical, FaCalendar, FaUserMd, FaPlus, FaDownload } from 'react-icons/fa';
+import { FaFileMedical, FaCalendar, FaUserMd, FaPlus, FaDownload, FaPaperclip, FaTimes, FaImage } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 const MedicalRecordsPage: React.FC = () => {
@@ -15,6 +16,8 @@ const MedicalRecordsPage: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [patients, setPatients] = useState<Patient[]>([]);
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [attachmentPreview, setAttachmentPreview] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     patient: '',
     record_type: 'diagnosis',
@@ -86,13 +89,28 @@ const MedicalRecordsPage: React.FC = () => {
         return;
       }
 
+      let attachmentUrl = '';
+      if (attachmentFile) {
+        try {
+          const uploadRes = await uploadApi.uploadImage(attachmentFile, 'medical_records');
+          attachmentUrl = uploadRes.url;
+        } catch (uploadErr) {
+          toast.error('Failed to upload attachment file');
+          setSaving(false);
+          return;
+        }
+      }
+
       await medicalRecordsApi.create({
         ...formData,
         patient: patientId,
+        ...(attachmentUrl ? { attachment_file: attachmentUrl } : {}),
       });
 
       toast.success('Medical record added successfully!');
       setShowAddModal(false);
+      setAttachmentFile(null);
+      setAttachmentPreview(null);
       setFormData({
         patient: '',
         record_type: 'diagnosis',
@@ -108,6 +126,31 @@ const MedicalRecordsPage: React.FC = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size exceeds the 5MB limit');
+      e.target.value = '';
+      return;
+    }
+
+    setAttachmentFile(file);
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = () => setAttachmentPreview(reader.result as string);
+      reader.readAsDataURL(file);
+    } else {
+      setAttachmentPreview(null);
+    }
+  };
+
+  const handleClearFile = () => {
+    setAttachmentFile(null);
+    setAttachmentPreview(null);
   };
 
   if (loading) return <LoadingSpinner />;
@@ -150,14 +193,31 @@ const MedicalRecordsPage: React.FC = () => {
                   </div>
                 </div>
                 {record.attachment_file && (
-                  <a
-                    href={record.attachment_file}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-outline text-sm flex items-center ml-4 whitespace-nowrap"
-                  >
-                    <FaDownload className="mr-1" /> View File
-                  </a>
+                  <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3 ml-4">
+                    {/\.(jpe?g|png|webp|gif)(\?.*)?$/i.test(record.attachment_file) && (
+                      <a
+                        href={record.attachment_file}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="View attachment image"
+                        className="block overflow-hidden rounded-lg border border-slate-200 hover:opacity-90 shadow-sm"
+                      >
+                        <img
+                          src={record.attachment_file}
+                          alt="Attachment"
+                          className="w-14 h-14 object-cover"
+                        />
+                      </a>
+                    )}
+                    <a
+                      href={record.attachment_file}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-outline text-xs flex items-center whitespace-nowrap"
+                    >
+                      <FaDownload className="mr-1" /> View File
+                    </a>
+                  </div>
                 )}
               </div>
             </div>
@@ -255,6 +315,59 @@ const MedicalRecordsPage: React.FC = () => {
               }
               required
             />
+          </div>
+
+          {/* Attachment / Lab Report (Cloudinary) */}
+          <div>
+            <label className="label flex items-center justify-between">
+              <span>Attachment / Lab Report Image (Optional)</span>
+              <span className="text-xs text-gray-400 font-normal">Cloudinary Cloud Storage</span>
+            </label>
+            <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center hover:border-teal-400 transition-colors bg-gray-50/50">
+              {attachmentFile ? (
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    {attachmentPreview ? (
+                      <img
+                        src={attachmentPreview}
+                        alt="Preview"
+                        className="w-12 h-12 rounded-lg object-cover border"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-lg bg-teal-50 flex items-center justify-center text-teal-600">
+                        <FaPaperclip className="text-xl" />
+                      </div>
+                    )}
+                    <div className="text-left min-w-0">
+                      <p className="text-sm font-medium text-gray-800 truncate">{attachmentFile.name}</p>
+                      <p className="text-xs text-gray-400">
+                        {(attachmentFile.size / 1024).toFixed(1)} KB
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleClearFile}
+                    className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                    title="Remove attachment"
+                  >
+                    <FaTimes />
+                  </button>
+                </div>
+              ) : (
+                <label className="cursor-pointer block">
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                  <FaImage className="mx-auto text-2xl text-teal-500 mb-1" />
+                  <p className="text-xs font-semibold text-teal-700">Click to upload report image or PDF</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">JPEG, PNG, WebP, GIF, PDF (max 5MB)</p>
+                </label>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center gap-2 pt-1">

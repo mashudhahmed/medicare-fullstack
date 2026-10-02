@@ -5,14 +5,35 @@ from apps.models.user import User
 
 
 class UserSerializer(serializers.ModelSerializer):
+    profile_picture = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = [
             'id', 'email', 'full_name', 'phone', 'address',
-            'profile_picture', 'role', 'status', 'two_factor_enabled',
+            'profile_picture', 'profile_picture_public_id', 'role', 'status', 'two_factor_enabled',
             'last_login', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'last_login', 'created_at', 'updated_at', 'two_factor_enabled']
+        read_only_fields = ['id', 'last_login', 'created_at', 'updated_at', 'two_factor_enabled', 'profile_picture_public_id']
+
+    def get_profile_picture(self, obj):
+        if not obj.profile_picture:
+            return None
+        url_str = str(obj.profile_picture)
+        if url_str.startswith('http://') or url_str.startswith('https://'):
+            return url_str
+        request = self.context.get('request')
+        try:
+            if hasattr(obj.profile_picture, 'url'):
+                rel_or_full = obj.profile_picture.url
+                if rel_or_full.startswith('http://') or rel_or_full.startswith('https://'):
+                    return rel_or_full
+                if request:
+                    return request.build_absolute_uri(rel_or_full)
+                return rel_or_full
+        except Exception:
+            pass
+        return url_str
 
 
 class RegisterSerializer(serializers.ModelSerializer):

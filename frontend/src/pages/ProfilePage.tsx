@@ -3,10 +3,24 @@ import { useAuth } from '../hooks/useAuth';
 import { authApi } from '../api/auth';
 import { patientsApi } from '../api/patients';
 import { doctorsApi } from '../api/doctors';
+import { uploadApi } from '../api/upload';
 import { Patient, Doctor } from '../types';
 import { Modal } from '../components/ui';
 import toast from 'react-hot-toast';
-import { FaUser, FaEnvelope, FaPhone, FaMapMarkerAlt, FaEdit, FaSave, FaShieldAlt, FaQrcode, FaKey } from 'react-icons/fa';
+import {
+  FaUser,
+  FaEnvelope,
+  FaPhone,
+  FaMapMarkerAlt,
+  FaEdit,
+  FaSave,
+  FaShieldAlt,
+  FaQrcode,
+  FaKey,
+  FaCamera,
+  FaTrash,
+  FaSpinner,
+} from 'react-icons/fa';
 
 const ProfilePage: React.FC = () => {
   const { user, updateUser } = useAuth();
@@ -32,6 +46,8 @@ const ProfilePage: React.FC = () => {
   const [totpCode, setTotpCode] = useState('');
   const [disableTotpCode, setDisableTotpCode] = useState('');
   const [processing2FA, setProcessing2FA] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -184,6 +200,58 @@ const ProfilePage: React.FC = () => {
     }
   };
 
+  const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file (JPEG, PNG, WebP, GIF)');
+      e.target.value = '';
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size exceeds the 5MB limit');
+      e.target.value = '';
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const res = await uploadApi.uploadAvatar(file);
+      updateUser(res.user);
+      toast.success('Profile picture updated successfully');
+    } catch (error: unknown) {
+      const message =
+        typeof error === 'object' && error !== null && 'response' in error
+          ? (error as { response?: { data?: { error?: string } } }).response?.data?.error
+          : undefined;
+      toast.error(message || 'Failed to upload profile picture');
+    } finally {
+      setUploadingAvatar(false);
+      if (avatarInputRef.current) {
+        avatarInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    setUploadingAvatar(true);
+    try {
+      const res = await uploadApi.deleteAvatar();
+      updateUser(res.user);
+      toast.success('Profile picture removed successfully');
+    } catch (error: unknown) {
+      const message =
+        typeof error === 'object' && error !== null && 'response' in error
+          ? (error as { response?: { data?: { error?: string } } }).response?.data?.error
+          : undefined;
+      toast.error(message || 'Failed to remove profile picture');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   if (!user) return null;
 
   return (
@@ -191,16 +259,84 @@ const ProfilePage: React.FC = () => {
       <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-medicare-teal to-teal-500 px-6 py-8">
-          <div className="flex items-center">
-            <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center text-3xl font-bold text-medicare-teal">
-              {user.full_name?.charAt(0) || 'U'}
+          <div className="flex flex-col sm:flex-row items-center gap-6">
+            {/* Avatar Container with Cloudinary Upload Controls */}
+            <div className="relative group">
+              <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white/60 shadow-lg bg-white flex items-center justify-center">
+                {user.profile_picture ? (
+                  <img
+                    src={user.profile_picture}
+                    alt={user.full_name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-3xl font-bold text-medicare-teal">
+                    {user.full_name?.charAt(0) || 'U'}
+                  </span>
+                )}
+              </div>
+
+              {/* Uploading Spinner Overlay */}
+              {uploadingAvatar && (
+                <div className="absolute inset-0 rounded-full bg-black/60 flex flex-col items-center justify-center text-white text-xs font-medium">
+                  <FaSpinner className="animate-spin text-xl mb-1" />
+                  <span>Uploading...</span>
+                </div>
+              )}
+
+              {/* Hover Camera Overlay */}
+              {!uploadingAvatar && (
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  title="Change profile picture"
+                  aria-label="Change profile picture"
+                  className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-xs font-medium cursor-pointer"
+                >
+                  <FaCamera className="text-lg mb-0.5" />
+                  <span>Change</span>
+                </button>
+              )}
+
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                onChange={handleAvatarSelect}
+                className="hidden"
+              />
             </div>
-            <div className="ml-6 text-white">
+
+            {/* Profile Info & Action Buttons */}
+            <div className="text-center sm:text-left text-white flex-1">
               <h1 className="text-2xl font-bold">{user.full_name}</h1>
               <p className="text-teal-100 capitalize">{user.role}</p>
               <p className="text-teal-100 text-sm">
                 Status: <span className="font-medium">{user.status}</span>
               </p>
+
+              <div className="flex items-center justify-center sm:justify-start gap-2 mt-3">
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={uploadingAvatar}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/20 hover:bg-white/30 text-white backdrop-blur transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  <FaCamera className="text-xs" />
+                  {user.profile_picture ? 'Change Photo' : 'Upload Photo'}
+                </button>
+                {user.profile_picture && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveAvatar}
+                    disabled={uploadingAvatar}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-red-500/30 hover:bg-red-500/50 text-white backdrop-blur transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    <FaTrash className="text-xs" />
+                    Remove
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

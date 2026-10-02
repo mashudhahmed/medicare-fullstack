@@ -58,11 +58,21 @@ const Navbar: React.FC = () => {
           <div className="hidden md:flex items-center space-x-4">
             {isAuthenticated ? (
               <>
-                <span className="text-sm text-gray-600">
+                <span className="text-sm font-medium text-gray-700">
                   {user?.full_name || user?.email}
                 </span>
-                <Link to="/profile" className="text-gray-700 hover:text-medicare-teal transition-colors">
-                  <FaUser className="text-lg" />
+                <Link to="/profile" className="flex items-center hover:opacity-85 transition" title="Profile">
+                  {user?.profile_picture ? (
+                    <img
+                      src={user.profile_picture}
+                      alt={user.full_name}
+                      className="w-8 h-8 rounded-full object-cover border border-medicare-teal"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-medicare-teal text-white flex items-center justify-center font-bold text-xs">
+                      {user?.full_name?.charAt(0) || 'U'}
+                    </div>
+                  )}
                 </Link>
                 <button
                   onClick={() => setShowLogoutModal(true)}

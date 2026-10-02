@@ -24,7 +24,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     address = models.TextField(blank=True, null=True)
 
     # Profile picture
-    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
+    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True, max_length=500)
     profile_picture_public_id = models.CharField(max_length=255, blank=True, null=True)
 
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.PATIENT, db_index=True)

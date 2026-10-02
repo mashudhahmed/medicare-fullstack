@@ -8,3 +8,4 @@ from .doctor_views import *
 from .appointment_views import *
 from .billing_views import *
 from .medical_record_views import *
+from .upload_views import *

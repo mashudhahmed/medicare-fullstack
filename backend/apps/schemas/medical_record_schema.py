@@ -19,6 +19,14 @@ class MedicalRecordSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.attachment_file:
+            val = str(instance.attachment_file)
+            if val.startswith('http://') or val.startswith('https://'):
+                data['attachment_file'] = val
+        return data
+
 
 class CreateMedicalRecordSerializer(serializers.ModelSerializer):
     class Meta:

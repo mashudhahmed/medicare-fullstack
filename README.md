@@ -51,8 +51,9 @@ MediCare is a unified medical practice management and telehealth solution. The p
 - Comprehensive lifecycle management: Pending, Confirmed, In Progress, Completed, and Cancelled.
 - Accessible modal dialogs with safety confirmations for appointment cancellations and booking workflows.
 
-### 4. Electronic Medical Records (EMR)
+### 4. Electronic Medical Records (EMR) & Cloudinary Media Uploads
 - Centralized patient medical history supporting diagnoses, prescriptions, lab results, immunizations, and surgical history.
+- Cloudinary cloud image upload integration for user avatars and medical record attachments (lab reports, radiology scans, PDFs) with seamless local storage fallback.
 - Granular confidentiality flags ensuring sensitive patient records remain restricted to authorized clinical staff.
 - Attachment management for medical imagery and laboratory reports.
 
@@ -253,6 +254,13 @@ DEFAULT_FROM_EMAIL=MediCare <noreply@medicare.local>
 
 # Channels & Redis (Optional for local development; in-memory fallback enabled)
 REDIS_URL=redis://127.0.0.1:6379/1
+
+# Cloudinary (Media & Image Uploads)
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+# Alternatively, specify full connection string:
+# CLOUDINARY_URL=cloudinary://<api_key>:<api_secret>@<cloud_name>
 ```
 
 ### 5. Execute Database Migrations
