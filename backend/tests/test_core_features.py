@@ -454,6 +454,94 @@ class CoreFeaturesTest(TestCase):
         self.assertEqual(trigger_resp.status_code, 200)
         self.assertTrue(trigger_resp.data['reminder_sent'])
 
+    def test_admin_analytics_and_csv_export(self):
+        """Verify Admin analytics aggregations and CSV data export endpoints"""
+        from rest_framework.test import APIClient
+
+        # Create Admin User
+        admin_user = User.objects.create_user(
+            email='admin@medicare.local',
+            password='AdminPassword123!',
+            full_name='Chief Administrator',
+            role='admin',
+            status='approved'
+        )
+
+        # Create an appointment and billing record
+        appt = Appointment.objects.create(
+            patient=self.patient,
+            doctor=self.doctor,
+            appointment_date=timezone.now(),
+            reason='Routine Checkup',
+            status='completed'
+        )
+        Billing.objects.create(
+            patient=self.patient,
+            appointment=appt,
+            amount=150.00,
+            tax=15.00,
+            discount=0.00,
+            status=Billing.Status.PAID,
+            payment_method=Billing.PaymentMethod.CASH
+        )
+
+        client = APIClient()
+
+        # 1. Non-admin cannot access analytics or exports
+        client.force_authenticate(user=self.patient_user)
+        resp_forbidden = client.get('/api/admin/analytics/')
+        self.assertEqual(resp_forbidden.status_code, 403)
+
+        resp_forbidden_export = client.get('/api/admin/export/appointments/')
+        self.assertEqual(resp_forbidden_export.status_code, 403)
+
+        # 2. Admin access analytics
+        client.force_authenticate(user=admin_user)
+        analytics_resp = client.get('/api/admin/analytics/')
+        self.assertEqual(analytics_resp.status_code, 200)
+        self.assertIn('summary', analytics_resp.data)
+        self.assertIn('monthly_trends', analytics_resp.data)
+        self.assertIn('specialty_distribution', analytics_resp.data)
+        self.assertIn('status_distribution', analytics_resp.data)
+        self.assertEqual(analytics_resp.data['summary']['completed_appointments'], 1)
+        self.assertEqual(analytics_resp.data['summary']['total_revenue'], 165.0)
+
+        # 3. Export Appointments CSV
+        export_appt_resp = client.get('/api/admin/export/appointments/')
+        self.assertEqual(export_appt_resp.status_code, 200)
+        self.assertEqual(export_appt_resp['Content-Type'], 'text/csv')
+        self.assertIn('attachment; filename="appointments_export_', export_appt_resp['Content-Disposition'])
+        appt_csv_content = export_appt_resp.content.decode('utf-8')
+        self.assertIn('Appointment ID,Patient Name,Patient Email', appt_csv_content)
+        self.assertIn('Jane Doe', appt_csv_content)
+        self.assertIn('Dr. Gregory House', appt_csv_content)
+
+        # 4. Export Billing CSV
+        export_bill_resp = client.get('/api/admin/export/billing/')
+        self.assertEqual(export_bill_resp.status_code, 200)
+        self.assertEqual(export_bill_resp['Content-Type'], 'text/csv')
+        self.assertIn('attachment; filename="billing_export_', export_bill_resp['Content-Disposition'])
+        bill_csv_content = export_bill_resp.content.decode('utf-8')
+        self.assertIn('Invoice Number,Patient Name,Patient Email,Amount', bill_csv_content)
+        self.assertIn('Jane Doe', bill_csv_content)
+        self.assertIn('165.0', bill_csv_content)
+
+        # 5. Export Patients CSV
+        export_pat_resp = client.get('/api/admin/export/patients/')
+        self.assertEqual(export_pat_resp.status_code, 200)
+        self.assertEqual(export_pat_resp['Content-Type'], 'text/csv')
+        pat_csv_content = export_pat_resp.content.decode('utf-8')
+        self.assertIn('Patient ID,Full Name,Email', pat_csv_content)
+        self.assertIn('Jane Doe', pat_csv_content)
+
+        # 6. Export Doctors CSV
+        export_doc_resp = client.get('/api/admin/export/doctors/')
+        self.assertEqual(export_doc_resp.status_code, 200)
+        self.assertEqual(export_doc_resp['Content-Type'], 'text/csv')
+        doc_csv_content = export_doc_resp.content.decode('utf-8')
+        self.assertIn('Doctor ID,Full Name,Email,Phone,Specialty', doc_csv_content)
+        self.assertIn('Dr. Gregory House', doc_csv_content)
+
 
 
 

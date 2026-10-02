@@ -183,13 +183,55 @@ export interface Notification {
   created_at: string;
 }
 
-// Admin Dashboard Types
+// Admin Dashboard & Analytics Types
 export interface AdminDashboardStats {
   totalUsers?: number;
   pendingDoctors?: number;
   verifiedDoctors?: number;
   totalDoctors?: number;
   [key: string]: unknown;
+}
+
+export interface AdminAnalyticsSummary {
+  total_users: number;
+  total_patients: number;
+  total_doctors: number;
+  verified_doctors: number;
+  pending_doctors: number;
+  total_appointments: number;
+  completed_appointments: number;
+  confirmed_appointments: number;
+  pending_appointments: number;
+  cancelled_appointments: number;
+  total_revenue: number;
+  pending_revenue: number;
+  average_doctor_rating: number;
+  total_reviews: number;
+}
+
+export interface AdminMonthlyTrend {
+  month: string;
+  appointments: number;
+  revenue: number;
+}
+
+export interface AdminSpecialtyDistribution {
+  specialty: string;
+  key: string;
+  count: number;
+}
+
+export interface AdminStatusDistribution {
+  status: string;
+  key: string;
+  count: number;
+}
+
+export interface AdminAnalyticsData {
+  summary: AdminAnalyticsSummary;
+  monthly_trends: AdminMonthlyTrend[];
+  specialty_distribution: AdminSpecialtyDistribution[];
+  status_distribution: AdminStatusDistribution[];
 }
 
 // API Response Types

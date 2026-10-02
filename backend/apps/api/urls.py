@@ -25,8 +25,13 @@ urlpatterns = [
     path('auth/2fa/enable/', auth_views.TwoFactorEnableView.as_view(), name='2fa-enable'),
     path('auth/2fa/disable/', auth_views.TwoFactorDisableView.as_view(), name='2fa-disable'),
 
-    # Admin
+    # Admin & Analytics
     path('admin/dashboard/', admin_views.AdminDashboardView.as_view(), name='admin-dashboard'),
+    path('admin/analytics/', admin_views.AdminAnalyticsView.as_view(), name='admin-analytics'),
+    path('admin/export/appointments/', admin_views.ExportAppointmentsCSVView.as_view(), name='admin-export-appointments'),
+    path('admin/export/billing/', admin_views.ExportBillingCSVView.as_view(), name='admin-export-billing'),
+    path('admin/export/patients/', admin_views.ExportPatientsCSVView.as_view(), name='admin-export-patients'),
+    path('admin/export/doctors/', admin_views.ExportDoctorsCSVView.as_view(), name='admin-export-doctors'),
     path('admin/users/', admin_views.ListUsersView.as_view(), name='admin-users'),
     path('admin/users/<uuid:pk>/', admin_views.UserDetailView.as_view(), name='admin-user-detail'),
     path('admin/users/<uuid:user_id>/status/', admin_views.UpdateUserStatusView.as_view(), name='admin-user-status'),

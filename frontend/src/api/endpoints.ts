@@ -48,6 +48,11 @@ export const ENDPOINTS = {
   },
   ADMIN: {
     DASHBOARD: '/admin/dashboard/',
+    ANALYTICS: '/admin/analytics/',
+    EXPORT_APPOINTMENTS: '/admin/export/appointments/',
+    EXPORT_BILLING: '/admin/export/billing/',
+    EXPORT_PATIENTS: '/admin/export/patients/',
+    EXPORT_DOCTORS: '/admin/export/doctors/',
     USERS: '/admin/users/',
     USER_DETAIL: (id: string) => `/admin/users/${id}/`,
     PENDING_DOCTORS: '/admin/doctors/pending/',
