@@ -3,7 +3,7 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from apps.models.patient import Patient
 from apps.schemas.patient_schema import PatientSerializer
-from apps.core.permissions import IsPatient, IsDoctor, IsAdmin, IsOwnerOrAdmin
+from apps.core.permissions import IsPatient, IsDoctor, IsAdmin, IsOwnerOrAdmin, IsOwnerOrDoctorOrAdmin
 
 
 class ListPatientsView(generics.ListAPIView):
@@ -32,10 +32,10 @@ class ListPatientsView(generics.ListAPIView):
 
 
 class PatientDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """Get, update, delete patient"""
-    permission_classes = [permissions.IsAuthenticated, IsOwnerOrAdmin]
+    """Get (owner, doctor, admin), update, delete patient (owner or admin)"""
+    permission_classes = [permissions.IsAuthenticated, IsOwnerOrDoctorOrAdmin]
     serializer_class = PatientSerializer
-    queryset = Patient.objects.filter(is_deleted=False)
+    queryset = Patient.objects.filter(is_deleted=False).select_related('user')
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()

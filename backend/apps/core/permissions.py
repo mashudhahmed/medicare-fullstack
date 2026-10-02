@@ -106,6 +106,41 @@ class IsOwnerOrAdmin(BasePermission):
         return False
 
 
+class IsOwnerOrAdminOrReadOnly(BasePermission):
+    """
+    Object-level: allow safe methods (GET, HEAD, OPTIONS) to any authenticated user.
+    Mutations (PUT, PATCH, DELETE) require ownership or admin privileges.
+    Used by DoctorDetailView so patients and other users can view doctor profiles.
+    """
+
+    def has_permission(self, request, view):
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and request.user.is_active
+        )
+
+    def has_object_permission(self, request, view, obj):
+        user = request.user
+        if not (user and user.is_authenticated and user.is_active):
+            return False
+
+        if request.method in SAFE_METHODS:
+            return True
+
+        if _is_admin(user):
+            return True
+
+        if obj == user:
+            return True
+
+        owner = getattr(obj, "user", None)
+        if owner is not None and owner == user:
+            return True
+
+        return False
+
+
 class IsOwnerOrDoctorOrAdmin(BasePermission):
     """
     Object-level permission for medical records, appointments, billing, etc.
@@ -145,6 +180,10 @@ class IsOwnerOrDoctorOrAdmin(BasePermission):
             return True
 
         if getattr(obj, "user", None) == user:
+            return True
+
+        # Doctors can view patient details (read-only)
+        if _role(user) == "doctor" and request.method in SAFE_METHODS:
             return True
 
         return False

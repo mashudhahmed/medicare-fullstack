@@ -542,6 +542,34 @@ class CoreFeaturesTest(TestCase):
         self.assertIn('Doctor ID,Full Name,Email,Phone,Specialty', doc_csv_content)
         self.assertIn('Dr. Gregory House', doc_csv_content)
 
+    def test_doctor_profile_public_view_and_permissions(self):
+        """Verify patients can view doctor profile and search doctors, while mutations remain restricted"""
+        from rest_framework.test import APIClient
+        client = APIClient()
+
+        # 1. Patient views doctor details
+        client.force_authenticate(user=self.patient_user)
+        detail_resp = client.get(f'/api/doctors/{self.doctor.id}/')
+        self.assertEqual(detail_resp.status_code, 200)
+        self.assertEqual(detail_resp.data['specialty'], 'cardiology')
+        self.assertEqual(detail_resp.data['user']['full_name'], 'Dr. Gregory House')
+
+        # 2. Patient tries to delete doctor (must be 403 Forbidden)
+        delete_resp = client.delete(f'/api/doctors/{self.doctor.id}/')
+        self.assertEqual(delete_resp.status_code, 403)
+
+        # 3. Patient searches doctors list with query
+        list_resp = client.get('/api/doctors/?search=House&specialty=cardiology')
+        self.assertEqual(list_resp.status_code, 200)
+        results = list_resp.data['results'] if 'results' in list_resp.data else list_resp.data
+        self.assertEqual(len(results), 1)
+
+        # 4. Doctor views patient details
+        client.force_authenticate(user=self.doctor_user)
+        pat_detail_resp = client.get(f'/api/patients/{self.patient.id}/')
+        self.assertEqual(pat_detail_resp.status_code, 200)
+        self.assertEqual(pat_detail_resp.data['blood_group'], 'O+')
+
 
 
 
