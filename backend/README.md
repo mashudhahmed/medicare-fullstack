@@ -228,16 +228,25 @@ python manage.py migrate
 
 ### 2. Seed Default Administrator
 
-Run the dedicated administrator seeding utility:
+Run the demo accounts seeding utility:
 
 ```bash
-python seed_admin.py
+python manage.py seed_demo_users
 ```
 
-Generated Account:
-- **Email**: `admin@medicare.local`
-- **Password**: `Admin@Medicare2026!`
-- **Role**: `admin` (Active, Staff, Superuser)
+Generated Accounts:
+- **Administrator**:
+  - Email: `admin@medicare.local`
+  - Password: `Admin@Medicare2026!`
+  - Role: `admin` (Active, Staff, Superuser)
+- **Doctor (Cardiology)**:
+  - Email: `doctor@medicare.local`
+  - Password: `Doctor@Medicare2026!`
+  - Role: `doctor` (Verified, Active)
+- **Patient**:
+  - Email: `patient@medicare.local`
+  - Password: `Patient@Medicare2026!`
+  - Role: `patient` (Active)
 
 ### 3. Seed Clinical Sample Data (Optional)
 

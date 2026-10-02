@@ -258,16 +258,22 @@ python manage.py makemigrations
 python manage.py migrate
 ```
 
-### 6. Seed Initial Administrator Account
+### 6. Seed Demo Accounts (Admin, Doctor, Patient)
 
 ```bash
-python seed_admin.py
+python manage.py seed_demo_users
 ```
 
-Default credentials created:
-- Email: `admin@medicare.local`
-- Password: `Admin@Medicare2026!`
-- Role: `Administrator`
+Pre-seeded credentials created:
+- **Administrator**:
+  - Email: `admin@medicare.local`
+  - Password: `Admin@Medicare2026!`
+- **Doctor (Cardiology)**:
+  - Email: `doctor@medicare.local`
+  - Password: `Doctor@Medicare2026!`
+- **Patient**:
+  - Email: `patient@medicare.local`
+  - Password: `Patient@Medicare2026!`
 
 ### 7. Start the Development Server
 
