@@ -69,6 +69,11 @@ export const ENDPOINTS = {
     DETAIL: (id: string) => `/reviews/${id}/`,
     DOCTOR: (doctorId: string) => `/doctors/${doctorId}/reviews/`,
   },
+  VITALS: {
+    LIST: '/vitals/',
+    DETAIL: (id: string) => `/vitals/${id}/`,
+    PATIENT_HISTORY: (patientId: string) => `/patients/${patientId}/vitals/`,
+  },
   AUDIT_LOGS: {
     LIST: '/admin/audit-logs/',
   },

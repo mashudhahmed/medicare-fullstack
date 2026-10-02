@@ -243,4 +243,43 @@ class CoreFeaturesTest(TestCase):
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0]['rating'], 5)
 
+    def test_patient_vitals_logging_and_bmi_calculation(self):
+        """Verify patient can log vitals, BMI is calculated, and history endpoint returns records"""
+        from rest_framework.test import APIClient
+        from apps.models.vital import PatientVital
+        client = APIClient()
+        client.force_authenticate(user=self.patient_user)
+
+        response = client.post('/api/vitals/', {
+            'systolic_bp': 120,
+            'diastolic_bp': 80,
+            'heart_rate': 72,
+            'blood_glucose': 95.5,
+            'glucose_context': 'fasting',
+            'oxygen_saturation': 98,
+            'temperature_c': 36.8,
+            'weight_kg': 70.0,
+            'height_cm': 175.0,
+            'notes': 'Normal morning reading'
+        })
+        self.assertEqual(response.status_code, 201)
+        data = response.data
+        self.assertEqual(data['bp_reading'], '120/80')
+        self.assertEqual(float(data['bmi']), 22.9)
+        self.assertEqual(data['bmi_category'], 'Normal')
+
+        # Check DB
+        vital = PatientVital.objects.filter(patient=self.patient).first()
+        self.assertIsNotNone(vital)
+        self.assertEqual(vital.recorded_by, self.patient_user)
+        self.assertEqual(vital.heart_rate, 72)
+
+        # Check history endpoint
+        history_resp = client.get(f'/api/patients/{self.patient.id}/vitals/')
+        self.assertEqual(history_resp.status_code, 200)
+        history_results = history_resp.data if isinstance(history_resp.data, list) else history_resp.data.get('results', [])
+        self.assertEqual(len(history_results), 1)
+        self.assertEqual(history_results[0]['bp_reading'], '120/80')
+
+
 

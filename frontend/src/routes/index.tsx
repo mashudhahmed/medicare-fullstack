@@ -23,6 +23,7 @@ import AdminDoctorsPage from '../pages/AdminDoctorsPage';
 import AdminAuditLogsPage from '../pages/AdminAuditLogsPage';
 import PrescriptionsPage from '../pages/PrescriptionsPage';
 import DoctorSchedulePage from '../pages/DoctorSchedulePage';
+import VitalsPage from '../pages/VitalsPage';
 import NotFoundPage from '../pages/NotFoundPage';
 import { useAuth } from '../context/AuthContext';
 
@@ -59,6 +60,7 @@ const AppRoutes: React.FC = () => (
       <Route path="/medical-records" element={<MedicalRecordsPage />} />
       <Route path="/notifications" element={<NotificationsPage />} />
       <Route path="/prescriptions" element={<PrescriptionsPage />} />
+      <Route path="/vitals" element={<VitalsPage />} />
       <Route
         path="/doctor/schedule"
         element={

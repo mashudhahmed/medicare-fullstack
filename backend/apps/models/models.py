@@ -9,6 +9,7 @@ from .prescription import Prescription
 from .audit_log import AuditLog
 from .password_reset import PasswordResetCode
 from .review import DoctorReview
+from .vital import PatientVital
 
 __all__ = [
     'User',
@@ -22,4 +23,5 @@ __all__ = [
     'AuditLog',
     'PasswordResetCode',
     'DoctorReview',
+    'PatientVital',
 ]

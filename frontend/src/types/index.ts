@@ -299,4 +299,45 @@ export interface CreateDoctorReviewData {
   comment?: string;
 }
 
+// Patient Health Vitals Types
+export interface PatientVital {
+  id: string;
+  patient: string;
+  patient_name?: string;
+  recorded_by?: string;
+  recorded_by_name?: string;
+  systolic_bp?: number;
+  diastolic_bp?: number;
+  bp_reading?: string;
+  heart_rate?: number;
+  blood_glucose?: number;
+  glucose_context: 'fasting' | 'post_meal' | 'random' | 'bedtime';
+  body_temperature?: number;
+  oxygen_saturation?: number;
+  weight_kg?: number;
+  height_cm?: number;
+  bmi?: number;
+  bmi_category?: 'Underweight' | 'Normal' | 'Overweight' | 'Obese' | string;
+  notes?: string;
+  recorded_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreatePatientVitalData {
+  patient?: string;
+  systolic_bp?: number;
+  diastolic_bp?: number;
+  heart_rate?: number;
+  blood_glucose?: number;
+  glucose_context?: 'fasting' | 'post_meal' | 'random' | 'bedtime';
+  body_temperature?: number;
+  oxygen_saturation?: number;
+  weight_kg?: number;
+  height_cm?: number;
+  notes?: string;
+  recorded_at?: string;
+}
+
+
 
