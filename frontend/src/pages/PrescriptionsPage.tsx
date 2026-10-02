@@ -14,6 +14,7 @@ import {
   FaClock,
   FaTrash,
   FaInfoCircle,
+  FaFilePdf,
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { Modal, ConfirmModal, SearchableSelect } from '../components/ui';
@@ -140,6 +141,17 @@ const PrescriptionsPage: React.FC = () => {
       fetchPrescriptions();
     } catch {
       toast.error('Failed to delete prescription');
+    }
+  };
+
+  const handleDownloadPdf = async (prescription: Prescription) => {
+    try {
+      toast.loading('Generating official PDF...', { id: 'pdf-toast' });
+      const filename = `Prescription_${prescription.medication_name.replace(/\s+/g, '_')}_${prescription.id.slice(0, 8)}.pdf`;
+      await prescriptionsApi.downloadPdf(prescription.id, filename);
+      toast.success('Prescription downloaded successfully', { id: 'pdf-toast' });
+    } catch {
+      toast.error('Failed to download prescription PDF', { id: 'pdf-toast' });
     }
   };
 
@@ -314,12 +326,21 @@ const PrescriptionsPage: React.FC = () => {
                 </div>
 
                 <div className="pt-3 border-t border-gray-100 flex items-center justify-between gap-2 mt-2">
-                  <button
-                    onClick={() => setSelectedPrescription(p)}
-                    className="text-xs text-medicare-primary hover:underline flex items-center gap-1 font-medium"
-                  >
-                    <FaInfoCircle /> Details
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setSelectedPrescription(p)}
+                      className="text-xs text-medicare-primary hover:underline flex items-center gap-1 font-medium"
+                    >
+                      <FaInfoCircle /> Details
+                    </button>
+                    <button
+                      onClick={() => handleDownloadPdf(p)}
+                      className="text-xs text-teal-700 hover:text-teal-900 bg-teal-50 hover:bg-teal-100 px-2.5 py-1 rounded flex items-center gap-1 font-medium transition"
+                      title="Download Official PDF"
+                    >
+                      <FaFilePdf /> PDF
+                    </button>
+                  </div>
 
                   <div className="flex items-center gap-2">
                     {user?.role === 'patient' && (
@@ -421,7 +442,14 @@ const PrescriptionsPage: React.FC = () => {
               </div>
             )}
 
-            <div className="flex justify-end pt-3">
+            <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => handleDownloadPdf(selectedPrescription)}
+                className="btn-primary text-xs flex items-center gap-1.5"
+              >
+                <FaFilePdf /> Download Official PDF
+              </button>
               <button
                 onClick={() => setSelectedPrescription(null)}
                 className="btn-secondary text-sm"

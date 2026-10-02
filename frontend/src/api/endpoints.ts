@@ -37,6 +37,7 @@ export const ENDPOINTS = {
     DETAIL: (id: string) => `/billing/${id}/`,
     MY: '/billing/my/',
     PAY: (id: string) => `/billing/${id}/pay/`,
+    PDF: (id: string) => `/billing/${id}/pdf/`,
   },
   MEDICAL_RECORDS: {
     LIST: '/medical-records/',
@@ -61,6 +62,7 @@ export const ENDPOINTS = {
     DETAIL: (id: string) => `/prescriptions/${id}/`,
     MY: '/prescriptions/my/',
     REFILL: (id: string) => `/prescriptions/${id}/refill/`,
+    PDF: (id: string) => `/prescriptions/${id}/pdf/`,
   },
   AUDIT_LOGS: {
     LIST: '/admin/audit-logs/',

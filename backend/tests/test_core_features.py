@@ -167,3 +167,47 @@ class CoreFeaturesTest(TestCase):
         self.assertIsNotNone(logout_log)
         self.assertEqual(logout_log.resource_type, 'User')
 
+    def test_prescription_pdf_endpoint(self):
+        """Verify prescription PDF endpoint returns 200 and application/pdf"""
+        from rest_framework.test import APIClient
+        client = APIClient()
+        client.force_authenticate(user=self.patient_user)
+
+        prescription = Prescription.objects.create(
+            patient=self.patient,
+            doctor=self.doctor,
+            medication_name='Amoxicillin 500mg',
+            dosage='1 capsule',
+            frequency='Every 8 hours',
+            duration_days=7,
+            instructions='Take after meals',
+            refills_allowed=1,
+            status='active'
+        )
+
+        response = client.get(f'/api/prescriptions/{prescription.id}/pdf/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+        self.assertTrue(len(response.content) > 500)
+        self.assertTrue(response.content.startswith(b'%PDF'))
+
+    def test_billing_invoice_pdf_endpoint(self):
+        """Verify billing invoice PDF endpoint returns 200 and application/pdf"""
+        from rest_framework.test import APIClient
+        client = APIClient()
+        client.force_authenticate(user=self.patient_user)
+
+        billing = Billing.objects.create(
+            patient=self.patient,
+            amount=150.00,
+            status='paid',
+            payment_method='cash',
+            description='Consultation Fee'
+        )
+
+        response = client.get(f'/api/billing/{billing.id}/pdf/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+        self.assertTrue(len(response.content) > 500)
+        self.assertTrue(response.content.startswith(b'%PDF'))
+

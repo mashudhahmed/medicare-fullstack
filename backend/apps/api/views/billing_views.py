@@ -76,3 +76,31 @@ class PayBillingView(APIView):
         return Response({
             'message': 'Billing paid successfully'
         }, status=status.HTTP_200_OK)
+
+
+class BillingInvoicePDFView(APIView):
+    """Download official Billing Invoice / Receipt PDF"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk):
+        from django.http import HttpResponse
+        from apps.services.pdf_service import generate_invoice_pdf
+
+        try:
+            billing = Billing.objects.select_related(
+                'patient__user', 'appointment__doctor__user'
+            ).get(id=pk, is_deleted=False)
+        except Billing.DoesNotExist:
+            return Response({'error': 'Billing record not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Access check
+        if request.user.role == 'patient' and billing.patient.user != request.user:
+            return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+
+        pdf_bytes = generate_invoice_pdf(billing)
+
+        filename = f"Invoice_{billing.invoice_number}.pdf"
+
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response

@@ -57,6 +57,7 @@ urlpatterns = [
     # Billing
     path('billing/', billing_views.ListCreateBillingView.as_view(), name='billing-list'),
     path('billing/<uuid:pk>/', billing_views.BillingDetailView.as_view(), name='billing-detail'),
+    path('billing/<uuid:pk>/pdf/', billing_views.BillingInvoicePDFView.as_view(), name='billing-pdf'),
     path('billing/my/', billing_views.MyBillingView.as_view(), name='my-billing'),
     path('billing/<uuid:pk>/pay/', billing_views.PayBillingView.as_view(), name='billing-pay'),
 
@@ -69,6 +70,7 @@ urlpatterns = [
     # Prescriptions
     path('prescriptions/', prescription_views.ListCreatePrescriptionView.as_view(), name='prescription-list'),
     path('prescriptions/<uuid:pk>/', prescription_views.PrescriptionDetailView.as_view(), name='prescription-detail'),
+    path('prescriptions/<uuid:pk>/pdf/', prescription_views.PrescriptionPDFView.as_view(), name='prescription-pdf'),
     path('prescriptions/my/', prescription_views.MyPrescriptionsView.as_view(), name='my-prescriptions'),
     path('prescriptions/<uuid:pk>/refill/', prescription_views.RefillPrescriptionView.as_view(), name='prescription-refill'),
 

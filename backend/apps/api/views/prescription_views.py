@@ -126,3 +126,34 @@ class RefillPrescriptionView(APIView):
             'message': 'Refill processed successfully',
             'prescription': PrescriptionSerializer(prescription).data
         }, status=status.HTTP_200_OK)
+
+
+class PrescriptionPDFView(APIView):
+    """Download official Prescription PDF"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk):
+        from django.http import HttpResponse
+        from apps.services.pdf_service import generate_prescription_pdf
+
+        try:
+            prescription = Prescription.objects.select_related(
+                'doctor__user', 'patient__user'
+            ).get(id=pk, is_deleted=False)
+        except Prescription.DoesNotExist:
+            return Response({'error': 'Prescription not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Access check
+        if request.user.role == 'patient' and prescription.patient.user != request.user:
+            return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        elif request.user.role == 'doctor' and prescription.doctor.user != request.user:
+            return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+
+        pdf_bytes = generate_prescription_pdf(prescription)
+
+        patient_name = prescription.patient.user.get_full_name().replace(' ', '_') if prescription.patient and prescription.patient.user else 'patient'
+        filename = f"Prescription_{patient_name}_{str(prescription.id)[:8]}.pdf"
+
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
