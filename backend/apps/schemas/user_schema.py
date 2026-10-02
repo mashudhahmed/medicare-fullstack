@@ -19,21 +19,26 @@ class UserSerializer(serializers.ModelSerializer):
     def get_profile_picture(self, obj):
         if not obj.profile_picture:
             return None
-        url_str = str(obj.profile_picture)
+        url_str = str(obj.profile_picture).strip()
+        if not url_str or url_str == 'None':
+            return None
+
+        # Return full remote CDN URL directly (e.g. Cloudinary)
         if url_str.startswith('http://') or url_str.startswith('https://'):
             return url_str
+
+        # Clean duplicate media paths if present
+        while url_str.startswith('/media/media/'):
+            url_str = url_str.replace('/media/media/', '/media/', 1)
+        if url_str.startswith('media/'):
+            url_str = f"/{url_str}"
+        elif not url_str.startswith('/media/') and not url_str.startswith('/'):
+            url_str = f"/media/{url_str}"
+
         request = self.context.get('request')
-        try:
-            if hasattr(obj.profile_picture, 'url'):
-                rel_or_full = obj.profile_picture.url
-                if rel_or_full.startswith('http://') or rel_or_full.startswith('https://'):
-                    return rel_or_full
-                if request:
-                    return request.build_absolute_uri(rel_or_full)
-                return rel_or_full
-        except Exception:
-            pass
-        return url_str
+        if request:
+            return request.build_absolute_uri(url_str)
+        return f"http://127.0.0.1:8000{url_str}"
 
 
 class RegisterSerializer(serializers.ModelSerializer):

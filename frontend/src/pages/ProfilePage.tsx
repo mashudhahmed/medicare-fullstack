@@ -47,7 +47,12 @@ const ProfilePage: React.FC = () => {
   const [disableTotpCode, setDisableTotpCode] = useState('');
   const [processing2FA, setProcessing2FA] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarImgError, setAvatarImgError] = useState(false);
   const avatarInputRef = React.useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setAvatarImgError(false);
+  }, [user?.profile_picture]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -262,17 +267,17 @@ const ProfilePage: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-center gap-6">
             {/* Avatar Container with Cloudinary Upload Controls */}
             <div className="relative group">
-              <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white/60 shadow-lg bg-white flex items-center justify-center">
-                {user.profile_picture ? (
+              <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white/60 shadow-lg bg-white flex items-center justify-center relative">
+                <span className="text-3xl font-bold text-medicare-teal select-none">
+                  {user.full_name?.charAt(0) || 'U'}
+                </span>
+                {user.profile_picture && !avatarImgError && (
                   <img
                     src={user.profile_picture}
-                    alt={user.full_name}
-                    className="w-full h-full object-cover"
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover"
+                    onError={() => setAvatarImgError(true)}
                   />
-                ) : (
-                  <span className="text-3xl font-bold text-medicare-teal">
-                    {user.full_name?.charAt(0) || 'U'}
-                  </span>
                 )}
               </div>
 

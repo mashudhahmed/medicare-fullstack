@@ -101,17 +101,17 @@ const DashboardLayout: React.FC = () => {
         </nav>
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-700">
           <div className="flex items-center gap-2.5 mb-2">
-            {user?.profile_picture ? (
-              <img
-                src={user.profile_picture}
-                alt={user.full_name}
-                className="w-8 h-8 rounded-full object-cover border border-slate-600"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-teal-600 text-white flex items-center justify-center font-bold text-xs">
-                {user?.full_name?.charAt(0) || 'U'}
-              </div>
-            )}
+            <div className="w-8 h-8 rounded-full bg-teal-600 text-white flex items-center justify-center font-bold text-xs relative overflow-hidden shrink-0 border border-slate-600">
+              <span>{user?.full_name?.charAt(0) || 'U'}</span>
+              {user?.profile_picture && (
+                <img
+                  src={user.profile_picture}
+                  alt={user.full_name}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                />
+              )}
+            </div>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-medium text-slate-200 truncate">{user?.full_name}</p>
               <p className="text-[11px] text-slate-400 truncate">{user?.email}</p>
@@ -141,17 +141,17 @@ const DashboardLayout: React.FC = () => {
               {user?.role}
             </span>
             <Link to="/profile" title="View Profile" className="relative block">
-              {user?.profile_picture ? (
-                <img
-                  src={user.profile_picture}
-                  alt={user.full_name}
-                  className="w-9 h-9 rounded-full object-cover border border-teal-500 hover:ring-2 hover:ring-teal-400 transition"
-                />
-              ) : (
-                <div className="w-9 h-9 rounded-full bg-teal-600 text-white flex items-center justify-center font-bold text-sm hover:bg-teal-700 transition">
-                  {user?.full_name?.charAt(0) || 'U'}
-                </div>
-              )}
+              <div className="w-9 h-9 rounded-full bg-teal-600 text-white flex items-center justify-center font-bold text-sm relative overflow-hidden border border-teal-500 hover:ring-2 hover:ring-teal-400 transition">
+                <span>{user?.full_name?.charAt(0) || 'U'}</span>
+                {user?.profile_picture && (
+                  <img
+                    src={user.profile_picture}
+                    alt={user.full_name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
+                )}
+              </div>
             </Link>
           </div>
         </header>

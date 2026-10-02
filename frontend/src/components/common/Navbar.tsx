@@ -62,17 +62,17 @@ const Navbar: React.FC = () => {
                   {user?.full_name || user?.email}
                 </span>
                 <Link to="/profile" className="flex items-center hover:opacity-85 transition" title="Profile">
-                  {user?.profile_picture ? (
-                    <img
-                      src={user.profile_picture}
-                      alt={user.full_name}
-                      className="w-8 h-8 rounded-full object-cover border border-medicare-teal"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-medicare-teal text-white flex items-center justify-center font-bold text-xs">
-                      {user?.full_name?.charAt(0) || 'U'}
-                    </div>
-                  )}
+                  <div className="w-8 h-8 rounded-full bg-medicare-teal text-white flex items-center justify-center font-bold text-xs relative overflow-hidden border border-medicare-teal">
+                    <span>{user?.full_name?.charAt(0) || 'U'}</span>
+                    {user?.profile_picture && (
+                      <img
+                        src={user.profile_picture}
+                        alt={user.full_name}
+                        className="absolute inset-0 w-full h-full object-cover"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    )}
+                  </div>
                 </Link>
                 <button
                   onClick={() => setShowLogoutModal(true)}
