@@ -1,15 +1,34 @@
+from django.db.models import Q
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from apps.models.patient import Patient
 from apps.schemas.patient_schema import PatientSerializer
-from apps.core.permissions import IsPatient, IsAdmin, IsOwnerOrAdmin
+from apps.core.permissions import IsPatient, IsDoctor, IsAdmin, IsOwnerOrAdmin
 
 
 class ListPatientsView(generics.ListAPIView):
-    """List all patients (Admin only)"""
-    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+    """List all patients with search and demographic filters (Admin & Doctor)"""
+    permission_classes = [permissions.IsAuthenticated, IsDoctor]
     serializer_class = PatientSerializer
-    queryset = Patient.objects.filter(is_deleted=False)
+
+    def get_queryset(self):
+        queryset = Patient.objects.filter(is_deleted=False).select_related('user').order_by('-created_at')
+        search = self.request.query_params.get('search')
+        gender = self.request.query_params.get('gender')
+        blood_group = self.request.query_params.get('blood_group')
+
+        if gender and gender != 'all':
+            queryset = queryset.filter(gender=gender)
+        if blood_group and blood_group != 'all':
+            queryset = queryset.filter(blood_group=blood_group)
+        if search:
+            queryset = queryset.filter(
+                Q(user__full_name__icontains=search) |
+                Q(user__email__icontains=search) |
+                Q(user__phone__icontains=search) |
+                Q(blood_group__icontains=search)
+            )
+        return queryset
 
 
 class PatientDetailView(generics.RetrieveUpdateDestroyAPIView):

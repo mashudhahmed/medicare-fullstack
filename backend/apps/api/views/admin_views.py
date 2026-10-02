@@ -2,7 +2,7 @@ import csv
 from calendar import monthrange
 from django.http import HttpResponse
 from django.utils import timezone
-from django.db.models import Sum, Count, Avg
+from django.db.models import Sum, Count, Avg, Q
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -36,10 +36,27 @@ class AdminDashboardView(APIView):
 
 
 class ListUsersView(generics.ListAPIView):
-    """List all users (Admin only)"""
+    """List all users with search and role filtering (Admin only)"""
     permission_classes = [permissions.IsAuthenticated, IsAdmin]
     serializer_class = UserSerializer
-    queryset = User.objects.filter(is_deleted=False)
+
+    def get_queryset(self):
+        queryset = User.objects.filter(is_deleted=False).order_by('-created_at')
+        role = self.request.query_params.get('role')
+        status_param = self.request.query_params.get('status')
+        search = self.request.query_params.get('search')
+
+        if role:
+            queryset = queryset.filter(role=role)
+        if status_param:
+            queryset = queryset.filter(status=status_param)
+        if search:
+            queryset = queryset.filter(
+                Q(full_name__icontains=search) |
+                Q(email__icontains=search) |
+                Q(phone__icontains=search)
+            )
+        return queryset
 
 
 class UserDetailView(generics.RetrieveUpdateDestroyAPIView):

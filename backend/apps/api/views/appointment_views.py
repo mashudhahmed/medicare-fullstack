@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, time as dt_time
 from django.utils import timezone
+from django.db.models import Q
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -10,19 +11,35 @@ from apps.core.permissions import IsPatient, IsDoctor, IsAdmin
 
 
 class ListCreateAppointmentsView(generics.ListCreateAPIView):
-    """List all appointments or create new"""
+    """List all appointments or create new with search and status filtering"""
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = AppointmentSerializer
 
     def get_queryset(self):
         user = self.request.user
         if user.role == 'admin':
-            return Appointment.objects.filter(is_deleted=False)
+            queryset = Appointment.objects.filter(is_deleted=False)
         elif user.role == 'patient':
-            return Appointment.objects.filter(patient__user=user, is_deleted=False)
+            queryset = Appointment.objects.filter(patient__user=user, is_deleted=False)
         elif user.role == 'doctor':
-            return Appointment.objects.filter(doctor__user=user, is_deleted=False)
-        return Appointment.objects.none()
+            queryset = Appointment.objects.filter(doctor__user=user, is_deleted=False)
+        else:
+            return Appointment.objects.none()
+
+        status_param = self.request.query_params.get('status')
+        if status_param and status_param != 'all':
+            queryset = queryset.filter(status=status_param)
+
+        search = self.request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(reason__icontains=search) |
+                Q(doctor__user__full_name__icontains=search) |
+                Q(doctor__specialty__icontains=search) |
+                Q(patient__user__full_name__icontains=search)
+            )
+
+        return queryset.select_related('patient__user', 'doctor__user').order_by('-appointment_date')
 
     def get_serializer_class(self):
         if self.request.method == 'POST':

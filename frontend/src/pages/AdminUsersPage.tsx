@@ -41,6 +41,18 @@ const AdminUsersPage: React.FC = () => {
     }
   };
 
+  const filteredUsers = users.filter((u) => {
+    const matchesRole = !roleFilter || u.role === roleFilter;
+    const query = search.toLowerCase().trim();
+    if (!query) return matchesRole;
+    return (
+      matchesRole &&
+      (u.full_name?.toLowerCase().includes(query) ||
+        u.email?.toLowerCase().includes(query) ||
+        (u.phone && u.phone.toLowerCase().includes(query)))
+    );
+  });
+
   if (loading && users.length === 0) return <LoadingSpinner />;
 
   return (
@@ -86,14 +98,14 @@ const AdminUsersPage: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {users.length === 0 ? (
+            {filteredUsers.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                   No users found
                 </td>
               </tr>
             ) : (
-              users.map((user) => (
+              filteredUsers.map((user) => (
                 <tr key={user.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {user.full_name}

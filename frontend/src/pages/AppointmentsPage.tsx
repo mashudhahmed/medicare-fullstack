@@ -4,7 +4,7 @@ import { appointmentsApi } from '../api/appointments';
 import { doctorsApi } from '../api/doctors';
 import { Appointment, Doctor, CreateAppointmentData } from '../types';
 import { useAuth } from '../hooks/useAuth';
-import { FaCalendar, FaClock, FaStethoscope, FaTimes, FaPlus, FaVideo, FaStar, FaComments, FaBell } from 'react-icons/fa';
+import { FaCalendar, FaClock, FaStethoscope, FaTimes, FaPlus, FaVideo, FaStar, FaComments, FaBell, FaSearch, FaFilter } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { Modal, ConfirmModal, SearchableSelect } from '../components/ui';
 import VideoConsultationModal from '../components/video/VideoConsultationModal';
@@ -20,6 +20,8 @@ const AppointmentsPage: React.FC = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [cancellingApptId, setCancellingApptId] = useState<string | null>(null);
   const [videoApptId, setVideoApptId] = useState<string | null>(null);
@@ -160,30 +162,114 @@ const AppointmentsPage: React.FC = () => {
     }
   };
 
+  const filteredAppointments = appointments.filter((appt) => {
+    const matchesStatus = statusFilter === 'all' || appt.status.toLowerCase() === statusFilter.toLowerCase();
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) return matchesStatus;
+
+    const doctorName = appt.doctor_details?.user?.full_name?.toLowerCase() || '';
+    const patientName = appt.patient_details?.user?.full_name?.toLowerCase() || '';
+    const reason = appt.reason?.toLowerCase() || '';
+    const specialty = appt.doctor_details?.specialty?.toLowerCase() || '';
+
+    const matchesSearch =
+      doctorName.includes(query) ||
+      patientName.includes(query) ||
+      reason.includes(query) ||
+      specialty.includes(query);
+
+    return matchesStatus && matchesSearch;
+  });
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('all');
+  };
+
+  const hasActiveFilters = searchQuery.trim() !== '' || statusFilter !== 'all';
+
   if (loading) return <LoadingSpinner />;
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-medicare-dark">Appointments</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-3xl font-bold text-medicare-dark">Appointments</h1>
+          <p className="text-sm text-gray-500 mt-1">Manage consultation bookings, join telemedicine calls, and send reminders</p>
+        </div>
         {user?.role === 'patient' && (
           <button
             onClick={() => setShowModal(true)}
-            className="btn-primary flex items-center"
+            className="btn-primary flex items-center self-start sm:self-auto"
           >
             <FaPlus className="mr-2" /> Book Appointment
           </button>
         )}
       </div>
 
+      {/* Search and Status Filter Bar */}
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-3 mb-6">
+        <div className="relative flex-1">
+          <FaSearch className="absolute left-3 top-3.5 text-gray-400 text-sm" />
+          <input
+            type="text"
+            placeholder="Search by doctor, patient, reason, or specialty..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-medicare-teal focus:outline-none"
+          />
+        </div>
+
+        <div className="w-full md:w-56">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-medicare-teal focus:outline-none"
+          >
+            <option value="all">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+
+        {hasActiveFilters && (
+          <button
+            onClick={clearFilters}
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 border border-gray-200 rounded-lg transition"
+          >
+            <FaTimes /> Clear
+          </button>
+        )}
+      </div>
+
+      {/* Results Count Bar */}
+      <div className="flex items-center justify-between text-xs text-gray-500 px-1 mb-4">
+        <span>Showing {filteredAppointments.length} {filteredAppointments.length === 1 ? 'appointment' : 'appointments'}</span>
+        {hasActiveFilters && (
+          <span className="flex items-center gap-1 text-medicare-teal">
+            <FaFilter className="text-[10px]" /> Filtered results
+          </span>
+        )}
+      </div>
+
       <div className="grid gap-4">
-        {appointments.length === 0 ? (
+        {filteredAppointments.length === 0 ? (
           <div className="card text-center py-12">
             <FaCalendar className="text-4xl mx-auto mb-3 text-gray-300" />
             <p className="text-gray-500">No appointments found</p>
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className="mt-3 btn-outline inline-flex items-center text-xs"
+              >
+                Reset Filters
+              </button>
+            )}
           </div>
         ) : (
-          appointments.map((appointment) => (
+          filteredAppointments.map((appointment) => (
             <div key={appointment.id} className="card flex justify-between items-center">
               <div>
                 <div className="flex items-center gap-3">

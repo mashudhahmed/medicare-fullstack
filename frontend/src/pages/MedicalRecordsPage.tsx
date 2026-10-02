@@ -5,13 +5,15 @@ import { uploadApi } from '../api/upload';
 import { MedicalRecord, Patient } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import { Modal, SearchableSelect, LoadingSpinner } from '../components/ui';
-import { FaFileMedical, FaCalendar, FaUserMd, FaPlus, FaDownload, FaPaperclip, FaTimes, FaImage } from 'react-icons/fa';
+import { FaFileMedical, FaCalendar, FaUserMd, FaPlus, FaDownload, FaPaperclip, FaTimes, FaImage, FaSearch, FaFilter } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 const MedicalRecordsPage: React.FC = () => {
   const { user } = useAuth();
   const [records, setRecords] = useState<MedicalRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -152,28 +154,108 @@ const MedicalRecordsPage: React.FC = () => {
     setAttachmentPreview(null);
   };
 
+  const filteredRecords = records.filter((rec) => {
+    const matchesType = typeFilter === 'all' || rec.record_type.toLowerCase() === typeFilter.toLowerCase();
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) return matchesType;
+
+    const title = rec.title?.toLowerCase() || '';
+    const desc = rec.description?.toLowerCase() || '';
+    const doctorName = rec.doctor_details?.user?.full_name?.toLowerCase() || '';
+
+    const matchesSearch = title.includes(query) || desc.includes(query) || doctorName.includes(query);
+    return matchesType && matchesSearch;
+  });
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setTypeFilter('all');
+  };
+
+  const hasActiveFilters = searchQuery.trim() !== '' || typeFilter !== 'all';
+
   if (loading) return <LoadingSpinner />;
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-medicare-dark">Medical Records</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-3xl font-bold text-medicare-dark">Medical Records</h1>
+          <p className="text-sm text-gray-500 mt-1">Access clinical diagnoses, lab results, vaccinations, and surgical notes</p>
+        </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="btn-primary flex items-center"
+          className="btn-primary flex items-center self-start sm:self-auto"
         >
           <FaPlus className="mr-2" /> Add Record
         </button>
       </div>
 
+      {/* Search and Record Type Filter Bar */}
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-3 mb-6">
+        <div className="relative flex-1">
+          <FaSearch className="absolute left-3 top-3.5 text-gray-400 text-sm" />
+          <input
+            type="text"
+            placeholder="Search by title, description, or doctor name..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-medicare-teal focus:outline-none"
+          />
+        </div>
+
+        <div className="w-full md:w-56">
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-medicare-teal focus:outline-none capitalize"
+          >
+            <option value="all">All Record Types</option>
+            <option value="diagnosis">Diagnosis</option>
+            <option value="prescription">Prescription</option>
+            <option value="test_result">Test Result</option>
+            <option value="vaccination">Vaccination</option>
+            <option value="surgery">Surgery</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        {hasActiveFilters && (
+          <button
+            onClick={clearFilters}
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 border border-gray-200 rounded-lg transition"
+          >
+            <FaTimes /> Clear
+          </button>
+        )}
+      </div>
+
+      {/* Results Count Bar */}
+      <div className="flex items-center justify-between text-xs text-gray-500 px-1 mb-4">
+        <span>Showing {filteredRecords.length} {filteredRecords.length === 1 ? 'record' : 'records'}</span>
+        {hasActiveFilters && (
+          <span className="flex items-center gap-1 text-medicare-teal">
+            <FaFilter className="text-[10px]" /> Filtered results
+          </span>
+        )}
+      </div>
+
       <div className="grid gap-4">
-        {records.length === 0 ? (
+        {filteredRecords.length === 0 ? (
           <div className="card text-center py-12">
             <FaFileMedical className="text-4xl mx-auto mb-3 text-gray-300" />
             <p className="text-gray-500">No medical records found</p>
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className="mt-3 btn-outline inline-flex items-center text-xs"
+              >
+                Reset Filters
+              </button>
+            )}
           </div>
         ) : (
-          records.map((record) => (
+          filteredRecords.map((record) => (
             <div key={record.id} className="card">
               <div className="flex justify-between items-start">
                 <div className="flex-1">

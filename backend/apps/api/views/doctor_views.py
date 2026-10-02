@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from apps.models.doctor import Doctor
@@ -6,10 +7,24 @@ from apps.core.permissions import IsDoctor, IsAdmin, IsOwnerOrAdmin
 
 
 class ListDoctorsView(generics.ListAPIView):
-    """List all doctors"""
+    """List all doctors with search and specialty filtering"""
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = DoctorSerializer
-    queryset = Doctor.objects.filter(is_deleted=False, is_verified=True)
+
+    def get_queryset(self):
+        queryset = Doctor.objects.filter(is_deleted=False, is_verified=True).select_related('user').order_by('-created_at')
+        specialty = self.request.query_params.get('specialty')
+        search = self.request.query_params.get('search')
+
+        if specialty and specialty != 'all':
+            queryset = queryset.filter(specialty=specialty)
+        if search:
+            queryset = queryset.filter(
+                Q(user__full_name__icontains=search) |
+                Q(specialty__icontains=search) |
+                Q(qualification__icontains=search)
+            )
+        return queryset
 
 
 class DoctorDetailView(generics.RetrieveUpdateDestroyAPIView):
