@@ -170,22 +170,12 @@ CLOUDINARY_CONFIGURED = bool(
     CLOUDINARY_URL or (CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET)
 )
 
-if CLOUDINARY_CONFIGURED:
-    import cloudinary
-    if CLOUDINARY_URL:
-        cloudinary.config()
-    else:
-        cloudinary.config(
-            cloud_name=CLOUDINARY_CLOUD_NAME,
-            api_key=CLOUDINARY_API_KEY,
-            api_secret=CLOUDINARY_API_SECRET,
-            secure=True,
-        )
-    CLOUDINARY_STORAGE = {
-        'CLOUD_NAME': CLOUDINARY_CLOUD_NAME,
-        'API_KEY': CLOUDINARY_API_KEY,
-        'API_SECRET': CLOUDINARY_API_SECRET,
-    }
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': CLOUDINARY_CLOUD_NAME,
+    'API_KEY': CLOUDINARY_API_KEY,
+    'API_SECRET': CLOUDINARY_API_SECRET,
+}
+
 
 # ---------------------------------------------------------------------------
 # Email

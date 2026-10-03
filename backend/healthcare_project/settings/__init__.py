@@ -1,7 +1,7 @@
-"""
-Settings package.
+import os
 
-Default to development. Override with:
-  DJANGO_SETTINGS_MODULE=healthcare_project.settings.production
-"""
-from .development import *  # noqa: F401, F403
+_module = os.environ.get('DJANGO_SETTINGS_MODULE', '')
+if 'production' in _module:
+    from .production import *  # noqa: F401, F403
+else:
+    from .development import *  # noqa: F401, F403
