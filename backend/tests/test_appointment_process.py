@@ -129,6 +129,35 @@ class AppointmentProcessFlowTest(TestCase):
         self.assertIsNotNone(patient_notif)
         self.assertIn(str(appt_id), patient_notif.message)
 
+        # 5b. WebRTC Signaling Relay: Doctor posts offer, Patient retrieves offer and posts answer
+        self.client.force_authenticate(user=self.doctor_user)
+        offer_post = self.client.post(f'/api/appointments/{appt_id}/signal/', {
+            'action': 'offer',
+            'data': {'type': 'offer', 'sdp': 'v=0...mock-sdp-offer...'}
+        }, format='json')
+        self.assertEqual(offer_post.status_code, 200)
+
+        # Patient polls signals and receives Doctor's offer
+        self.client.force_authenticate(user=self.patient_user)
+        signals_get = self.client.get(f'/api/appointments/{appt_id}/signal/')
+        self.assertEqual(signals_get.status_code, 200)
+        received_signals = signals_get.data.get('signals', [])
+        self.assertTrue(any(s['action'] == 'offer' for s in received_signals))
+
+        # Patient posts answer
+        answer_post = self.client.post(f'/api/appointments/{appt_id}/signal/', {
+            'action': 'answer',
+            'data': {'type': 'answer', 'sdp': 'v=0...mock-sdp-answer...'}
+        }, format='json')
+        self.assertEqual(answer_post.status_code, 200)
+
+        # Doctor polls signals and receives Patient's answer
+        self.client.force_authenticate(user=self.doctor_user)
+        doc_signals = self.client.get(f'/api/appointments/{appt_id}/signal/')
+        self.assertEqual(doc_signals.status_code, 200)
+        doc_received = doc_signals.data.get('signals', [])
+        self.assertTrue(any(s['action'] == 'answer' for s in doc_received))
+
         # 6. Unauthorized user cannot access video consultation
         self.client.force_authenticate(user=self.other_patient_user)
         unauth_video = self.client.get(f'/api/appointments/{appt_id}/video/')

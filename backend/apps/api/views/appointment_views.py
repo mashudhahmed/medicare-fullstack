@@ -293,6 +293,63 @@ class JoinVideoConsultationView(APIView):
         })
 
 
+class WebRTCSignalView(APIView):
+    """
+    Lightweight REST signaling relay for P2P WebRTC audio/video consultations.
+    Allows peer browsers to exchange SDP offers, answers, and ICE candidates without third-party services.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk):
+        from django.core.cache import cache
+        user_id = str(request.user.id)
+        cache_key = f"webrtc_signals_{pk}"
+        signals = cache.get(cache_key, [])
+        peer_signals = [s for s in signals if s.get('sender') != user_id]
+        return Response({'signals': peer_signals})
+
+    def post(self, request, pk):
+        from django.core.cache import cache
+        user_id = str(request.user.id)
+        action = request.data.get('action')
+        data = request.data.get('data')
+
+        if not action:
+            return Response({'error': 'action required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        cache_key = f"webrtc_signals_{pk}"
+        signals = cache.get(cache_key, [])
+
+        if action in ['clear', 'leave']:
+            signals = [s for s in signals if s.get('sender') != user_id]
+            if action == 'leave':
+                signals.append({
+                    'sender': user_id,
+                    'action': 'leave',
+                    'user_name': request.user.get_full_name(),
+                    'timestamp': timezone.now().isoformat(),
+                })
+            cache.set(cache_key, signals, timeout=1800)
+            return Response({'status': 'cleared'})
+
+        if action == 'offer':
+            signals = [s for s in signals if s.get('action') != 'offer']
+
+        new_signal = {
+            'sender': user_id,
+            'action': action,
+            'data': data,
+            'user_name': request.user.get_full_name(),
+            'timestamp': timezone.now().isoformat(),
+        }
+        signals.append(new_signal)
+        if len(signals) > 30:
+            signals = signals[-30:]
+        cache.set(cache_key, signals, timeout=1800)
+
+        return Response({'status': 'delivered'})
+
+
 class RescheduleAppointmentView(APIView):
     """Reschedule an existing appointment"""
     permission_classes = [permissions.IsAuthenticated]

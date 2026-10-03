@@ -58,6 +58,19 @@ export const appointmentsApi = {
     return data;
   },
 
+  postWebRTCSignal: async (id: string, action: string, payload?: unknown) => {
+    const { data } = await api.post(`/appointments/${id}/signal/`, {
+      action,
+      data: payload,
+    });
+    return data;
+  },
+
+  getWebRTCSignals: async (id: string): Promise<{ signals: Array<{ sender: string; action: string; data: any; user_name?: string; timestamp?: string }> }> => {
+    const { data } = await api.get(`/appointments/${id}/signal/`);
+    return data;
+  },
+
   sendReminder: async (id: string): Promise<{ message: string; reminder_sent: boolean; reminder_sent_at: string }> => {
     const { data } = await api.post(ENDPOINTS.APPOINTMENTS.SEND_REMINDER(id));
     return data;
