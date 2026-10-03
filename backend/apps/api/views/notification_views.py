@@ -35,3 +35,29 @@ class MarkAllNotificationsReadView(APIView):
     def post(self, request):
         Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
         return Response({"message": "All notifications marked as read"})
+
+
+class NotificationUnreadCountView(APIView):
+    """Get count of unread notifications and the most recent notification for real-time alerting"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        qs = Notification.objects.filter(user=user, is_read=False).order_by('-created_at')
+        count = qs.count()
+        latest = qs.first()
+
+        latest_data = None
+        if latest:
+            latest_data = {
+                'id': str(latest.id),
+                'title': latest.title,
+                'message': latest.message,
+                'notification_type': latest.notification_type,
+                'created_at': latest.created_at.isoformat(),
+            }
+
+        return Response({
+            'unread_count': count,
+            'latest_notification': latest_data,
+        }, status=status.HTTP_200_OK)

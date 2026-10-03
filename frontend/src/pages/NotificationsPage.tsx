@@ -37,6 +37,7 @@ const NotificationsPage: React.FC = () => {
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
       );
+      window.dispatchEvent(new Event('notifications-updated'));
     } catch {
       toast.error('Failed to mark notification as read');
     }
@@ -46,6 +47,7 @@ const NotificationsPage: React.FC = () => {
     try {
       await notificationsApi.markAllAsRead();
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      window.dispatchEvent(new Event('notifications-updated'));
       toast.success('All notifications marked as read');
     } catch {
       toast.error('Failed to mark all as read');

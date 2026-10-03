@@ -570,6 +570,54 @@ class CoreFeaturesTest(TestCase):
         self.assertEqual(pat_detail_resp.status_code, 200)
         self.assertEqual(pat_detail_resp.data['blood_group'], 'O+')
 
+    def test_notification_unread_count_endpoint(self):
+        """Verify NotificationUnreadCountView returns unread_count and latest_notification details"""
+        from rest_framework.test import APIClient
+        client = APIClient()
+
+        # Unauthenticated request fails with 401
+        resp = client.get('/api/notifications/unread-count/')
+        self.assertEqual(resp.status_code, 401)
+
+        # Authenticate as patient
+        client.force_authenticate(user=self.patient_user)
+        resp = client.get('/api/notifications/unread-count/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data['unread_count'], 0)
+        self.assertIsNone(resp.data['latest_notification'])
+
+        # Create two notifications for patient
+        notif1 = Notification.objects.create(
+            user=self.patient_user,
+            title='First Notice',
+            message='First notification message.',
+            notification_type=Notification.Type.APPOINTMENT,
+            is_read=False
+        )
+        notif2 = Notification.objects.create(
+            user=self.patient_user,
+            title='Second Notice',
+            message='Second notification message.',
+            notification_type=Notification.Type.SYSTEM,
+            is_read=False
+        )
+
+        resp = client.get('/api/notifications/unread-count/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data['unread_count'], 2)
+        self.assertEqual(resp.data['latest_notification']['id'], str(notif2.id))
+        self.assertEqual(resp.data['latest_notification']['title'], 'Second Notice')
+
+        # Mark one notification as read
+        notif2.is_read = True
+        notif2.save()
+
+        resp = client.get('/api/notifications/unread-count/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data['unread_count'], 1)
+        self.assertEqual(resp.data['latest_notification']['id'], str(notif1.id))
+
+
 
 
 

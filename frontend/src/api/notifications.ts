@@ -17,6 +17,11 @@ export const notificationsApi = {
     const { data } = await api.post(ENDPOINTS.NOTIFICATIONS.READ_ALL);
     return data;
   },
+
+  getUnreadCount: async (): Promise<{ unread_count: number; latest_notification?: Notification | null }> => {
+    const { data } = await api.get(ENDPOINTS.NOTIFICATIONS.UNREAD_COUNT);
+    return data;
+  },
 };
 
 export default notificationsApi;

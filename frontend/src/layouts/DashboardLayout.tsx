@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { ConfirmModal } from '../components/ui';
 import {
@@ -23,6 +24,7 @@ import {
   FaChartLine,
 } from 'react-icons/fa';
 import { messagesApi } from '../api/messages';
+import { notificationsApi } from '../api/notifications';
 
 interface NavItem {
   to: string;
@@ -37,6 +39,37 @@ interface NavSection {
   items: NavItem[];
 }
 
+const playNotificationChime = () => {
+  try {
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
+
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    // Gentle dual-tone chime (587.33 Hz [D5] stepping to 880 Hz [A5])
+    osc.frequency.setValueAtTime(587.33, now);
+    osc.frequency.setValueAtTime(880, now + 0.12);
+
+    gain.gain.setValueAtTime(0.12, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.35);
+  } catch {
+    // Audio context may be restricted by browser autoplay policy before first gesture
+  }
+};
+
 const DashboardLayout: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -44,6 +77,9 @@ const DashboardLayout: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState<number>(0);
+  const [unreadNotifications, setUnreadNotifications] = useState<number>(0);
+  const lastNotificationIdRef = useRef<string | null>(null);
+  const isInitialNotificationLoadRef = useRef<boolean>(true);
 
   const fetchUnreadCount = useCallback(async () => {
     if (!user) return;
@@ -55,11 +91,90 @@ const DashboardLayout: React.FC = () => {
     }
   }, [user]);
 
+  const fetchUnreadNotifications = useCallback(async () => {
+    if (!user) return;
+    try {
+      const data = await notificationsApi.getUnreadCount();
+      const count = data.unread_count ?? 0;
+      setUnreadNotifications(count);
+
+      const latest = data.latest_notification;
+      if (!isInitialNotificationLoadRef.current && latest && latest.id !== lastNotificationIdRef.current) {
+        lastNotificationIdRef.current = latest.id;
+        playNotificationChime();
+
+        toast.custom(
+          (t) => (
+            <div
+              className={`${
+                t.visible ? 'animate-enter' : 'animate-leave'
+              } max-w-md w-full bg-white shadow-xl rounded-xl pointer-events-auto flex flex-col p-4 border border-slate-200 border-l-4 border-l-teal-600 transition-all`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-2 w-2 rounded-full bg-teal-500 animate-pulse" />
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-teal-600">
+                      New Notification
+                    </p>
+                  </div>
+                  <p className="mt-1 text-sm font-bold text-slate-900 truncate">
+                    {latest.title}
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-600 line-clamp-2">
+                    {latest.message}
+                  </p>
+                </div>
+                <button
+                  onClick={() => toast.dismiss(t.id)}
+                  className="text-slate-400 hover:text-slate-600 p-1 text-xs rounded transition"
+                  aria-label="Dismiss alert"
+                >
+                  <FaTimes />
+                </button>
+              </div>
+              <div className="mt-3 flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  onClick={() => {
+                    toast.dismiss(t.id);
+                    navigate('/notifications');
+                  }}
+                  className="px-3 py-1 bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold rounded-md transition shadow-xs"
+                >
+                  View Details
+                </button>
+              </div>
+            </div>
+          ),
+          { duration: 6000 }
+        );
+      } else if (isInitialNotificationLoadRef.current) {
+        if (latest) {
+          lastNotificationIdRef.current = latest.id;
+        }
+        isInitialNotificationLoadRef.current = false;
+      }
+    } catch {
+      // Ignore background fetch error
+    }
+  }, [user, navigate]);
+
   useEffect(() => {
     fetchUnreadCount();
     const interval = setInterval(fetchUnreadCount, 15000);
     return () => clearInterval(interval);
   }, [fetchUnreadCount, location.pathname]);
+
+  useEffect(() => {
+    fetchUnreadNotifications();
+    const interval = setInterval(fetchUnreadNotifications, 6000);
+    const handleUpdate = () => fetchUnreadNotifications();
+    window.addEventListener('notifications-updated', handleUpdate);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('notifications-updated', handleUpdate);
+    };
+  }, [fetchUnreadNotifications, location.pathname]);
 
   const handleLogout = async () => {
     await logout();
@@ -93,7 +208,7 @@ const DashboardLayout: React.FC = () => {
           title: 'Account',
           items: [
             { to: '/billing', label: 'Billing & Invoices', icon: <FaFileInvoiceDollar /> },
-            { to: '/notifications', label: 'Notifications', icon: <FaBell /> },
+            { to: '/notifications', label: 'Notifications', icon: <FaBell />, badge: unreadNotifications },
             { to: '/profile', label: 'My Profile', icon: <FaCog /> },
           ],
         },
@@ -123,7 +238,7 @@ const DashboardLayout: React.FC = () => {
         {
           title: 'Account',
           items: [
-            { to: '/notifications', label: 'Notifications', icon: <FaBell /> },
+            { to: '/notifications', label: 'Notifications', icon: <FaBell />, badge: unreadNotifications },
             { to: '/profile', label: 'Doctor Profile', icon: <FaCog /> },
           ],
         },
@@ -161,7 +276,7 @@ const DashboardLayout: React.FC = () => {
         title: 'System & Security',
         items: [
           { to: '/admin/audit-logs', label: 'Security & Audit Logs', icon: <FaShieldAlt /> },
-          { to: '/notifications', label: 'Notifications', icon: <FaBell /> },
+          { to: '/notifications', label: 'Notifications', icon: <FaBell />, badge: unreadNotifications },
           { to: '/profile', label: 'System Settings', icon: <FaCog /> },
         ],
       },
@@ -225,7 +340,11 @@ const DashboardLayout: React.FC = () => {
                     <span className="truncate">{item.label}</span>
                   </div>
                   {item.badge !== undefined && item.badge > 0 && (
-                    <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-teal-500 text-white shrink-0">
+                    <span
+                      className={`px-2 py-0.5 text-xs font-semibold rounded-full text-white shrink-0 ${
+                        item.to === '/notifications' ? 'bg-red-500' : 'bg-teal-500'
+                      }`}
+                    >
                       {item.badge > 99 ? '99+' : item.badge}
                     </span>
                   )}
@@ -286,6 +405,11 @@ const DashboardLayout: React.FC = () => {
               className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition relative"
             >
               <FaBell size={18} />
+              {unreadNotifications > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
+                  {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                </span>
+              )}
             </Link>
             <span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-medium capitalize text-teal-700">
               {user?.role}

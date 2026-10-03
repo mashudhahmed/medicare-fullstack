@@ -61,6 +61,7 @@ export const ENDPOINTS = {
   },
   NOTIFICATIONS: {
     LIST: '/notifications/',
+    UNREAD_COUNT: '/notifications/unread-count/',
     READ: (id: string) => `/notifications/${id}/read/`,
     READ_ALL: '/notifications/read-all/',
   },
