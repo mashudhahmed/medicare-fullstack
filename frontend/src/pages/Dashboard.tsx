@@ -140,26 +140,40 @@ const Dashboard: React.FC = () => {
     year: 'numeric',
   });
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
+
+  const getSubtitle = () => {
+    if (role === 'patient') {
+      return 'Access your upcoming medical visits, vitals records, and connect with board-certified physicians.';
+    }
+    if (role === 'doctor') {
+      return 'Manage your daily consultation schedule, review patient records, and send medical prescriptions.';
+    }
+    return 'Monitor system telemetry, practitioner approvals, analytics, and hospital compliance audit logs.';
+  };
+
   return (
     <div className="space-y-6">
       {/* Welcome Banner Card */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-teal-950 rounded-2xl p-6 sm:p-7 text-white shadow-md flex flex-col md:flex-row md:items-center md:justify-between gap-5">
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-teal-500/20 text-teal-300 border border-teal-400/30 capitalize">
+      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-5 sm:p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-teal-50 text-teal-700 border border-teal-200/60 capitalize tracking-wide">
+              <span className="w-1.5 h-1.5 rounded-full bg-teal-500" />
               {role} Portal
             </span>
-            <span className="text-xs text-slate-400">{currentDate}</span>
+            <span className="text-xs text-slate-400 font-medium">{currentDate}</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            Welcome back, {user?.full_name}
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+            {getGreeting()}, {user?.full_name}
           </h1>
-          <p className="text-xs sm:text-sm text-slate-300 max-w-xl">
-            {role === 'patient'
-              ? 'Access your upcoming medical visits, vitals records, and connect with board-certified physicians.'
-              : role === 'doctor'
-              ? 'Manage your daily consultation schedule, review patient records, and send medical prescriptions.'
-              : 'Monitor system telemetry, practitioner approvals, analytics, and hospital compliance audit logs.'}
+          <p className="text-xs sm:text-sm text-slate-500 max-w-xl leading-relaxed">
+            {getSubtitle()}
           </p>
         </div>
 
@@ -169,15 +183,15 @@ const Dashboard: React.FC = () => {
             <>
               <Link
                 to="/appointments"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold shadow-xs transition"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold shadow-xs transition"
               >
                 <FaPlus className="text-xs" /> Book Consultation
               </Link>
               <Link
                 to="/vitals"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold border border-white/20 backdrop-blur transition"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200 transition"
               >
-                <FaHeartbeat className="text-xs" /> Log Vitals
+                <FaHeartbeat className="text-xs text-teal-600" /> Log Vitals
               </Link>
             </>
           )}
@@ -186,15 +200,15 @@ const Dashboard: React.FC = () => {
             <>
               <Link
                 to="/appointments"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold shadow-xs transition"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold shadow-xs transition"
               >
                 <FaCalendarAlt className="text-xs" /> View Schedule
               </Link>
               <Link
                 to="/patients"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold border border-white/20 backdrop-blur transition"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200 transition"
               >
-                <FaUsers className="text-xs" /> Patients Directory
+                <FaUsers className="text-xs text-teal-600" /> Patients Directory
               </Link>
             </>
           )}
@@ -203,15 +217,15 @@ const Dashboard: React.FC = () => {
             <>
               <Link
                 to="/admin/dashboard"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold shadow-xs transition"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold shadow-xs transition"
               >
                 <FaShieldAlt className="text-xs" /> Executive Analytics
               </Link>
               <Link
                 to="/admin/doctors"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold border border-white/20 backdrop-blur transition"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200 transition"
               >
-                <FaUserMd className="text-xs" /> Doctor Approvals
+                <FaUserMd className="text-xs text-teal-600" /> Doctor Approvals
               </Link>
             </>
           )}
