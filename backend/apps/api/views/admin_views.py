@@ -12,7 +12,7 @@ from apps.models.patient import Patient
 from apps.models.appointment import Appointment
 from apps.models.billing import Billing
 from apps.models.review import DoctorReview
-from apps.schemas.user_schema import UserSerializer
+from apps.schemas.user_schema import UserSerializer, AdminUserDetailSerializer
 from apps.schemas.doctor_schema import DoctorSerializer
 from apps.core.permissions import IsAdmin
 from apps.services.notification_service import NotificationService
@@ -63,7 +63,14 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Get, update, delete user (Admin only)"""
     permission_classes = [permissions.IsAuthenticated, IsAdmin]
     serializer_class = UserSerializer
-    queryset = User.objects.filter(is_deleted=False)
+
+    def get_queryset(self):
+        return User.objects.filter(is_deleted=False).select_related('patient_profile', 'doctor_profile')
+
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return AdminUserDetailSerializer
+        return UserSerializer
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()

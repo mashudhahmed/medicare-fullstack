@@ -443,6 +443,58 @@ export interface ConversationSummary {
   unread_count: number;
 }
 
+export interface AdminUserRecentAppointment {
+  id: string;
+  partner_name: string;
+  specialty?: string;
+  appointment_date: string;
+  status: string;
+  reason: string;
+}
+
+export interface AdminUserActivitySummary {
+  total_appointments: number;
+  completed_appointments: number;
+  pending_appointments: number;
+  cancelled_appointments: number;
+  recent_appointments: AdminUserRecentAppointment[];
+  total_medical_records: number;
+  total_invoices?: number;
+}
+
+export interface AdminUserDetail extends User {
+  patient_profile?: {
+    id: string;
+    date_of_birth?: string;
+    gender?: 'male' | 'female' | 'other' | string;
+    blood_group?: string;
+    emergency_contact?: string;
+    emergency_contact_name?: string;
+    allergies?: string;
+    chronic_conditions?: string;
+    created_at?: string;
+    updated_at?: string;
+  } | null;
+  doctor_profile?: {
+    id: string;
+    specialty?: string;
+    qualification?: string;
+    experience_years?: number;
+    license_number?: string;
+    is_verified?: boolean;
+    consultation_fee?: string;
+    available_days?: string[];
+    available_time_start?: string;
+    available_time_end?: string;
+    average_rating?: number;
+    total_reviews?: number;
+    created_at?: string;
+    updated_at?: string;
+  } | null;
+  activity_summary?: AdminUserActivitySummary | null;
+}
+
+
 
 
 

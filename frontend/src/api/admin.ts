@@ -1,6 +1,6 @@
 import api from './axios';
 import { ENDPOINTS } from './endpoints';
-import type { AdminDashboardStats, AdminAnalyticsData, User, Doctor, AuditLog, PaginatedResponse } from '../types';
+import type { AdminDashboardStats, AdminAnalyticsData, User, Doctor, AuditLog, PaginatedResponse, AdminUserDetail } from '../types';
 
 const downloadCsv = async (endpoint: string, defaultFilename: string): Promise<void> => {
   const response = await api.get(endpoint, {
@@ -53,9 +53,9 @@ export const adminApi = {
     return data as PaginatedResponse<User> | User[];
   },
 
-  getUser: async (id: string) => {
+  getUser: async (id: string): Promise<AdminUserDetail> => {
     const { data } = await api.get(ENDPOINTS.ADMIN.USER_DETAIL(id));
-    return data as User;
+    return data as AdminUserDetail;
   },
 
   updateUserStatus: async (id: string, status: string) => {

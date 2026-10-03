@@ -617,6 +617,58 @@ class CoreFeaturesTest(TestCase):
         self.assertEqual(resp.data['unread_count'], 1)
         self.assertEqual(resp.data['latest_notification']['id'], str(notif1.id))
 
+    def test_admin_view_user_profiles_detail(self):
+        """Verify Admin can view comprehensive user profiles for patients and doctors"""
+        from rest_framework.test import APIClient
+        client = APIClient()
+
+        # Create an appointment between patient and doctor
+        Appointment.objects.create(
+            patient=self.patient,
+            doctor=self.doctor,
+            appointment_date=timezone.now() + timezone.timedelta(days=2),
+            reason='Consultation checkup',
+            status='confirmed'
+        )
+
+        # Create Admin User
+        admin_user = User.objects.create_user(
+            email='admin_profiler@medicare.local',
+            password='AdminPassword123!',
+            full_name='Profile Inspector Admin',
+            role='admin',
+            is_staff=True,
+            is_superuser=True
+        )
+
+        # 1. Non-admin forbidden
+        client.force_authenticate(user=self.patient_user)
+        forbidden_resp = client.get(f'/api/admin/users/{self.doctor_user.id}/')
+        self.assertEqual(forbidden_resp.status_code, 403)
+
+        # 2. Admin retrieves Patient profile with comprehensive demographics & activity
+        client.force_authenticate(user=admin_user)
+        pat_profile_resp = client.get(f'/api/admin/users/{self.patient_user.id}/')
+        self.assertEqual(pat_profile_resp.status_code, 200)
+        self.assertEqual(pat_profile_resp.data['email'], self.patient_user.email)
+        self.assertEqual(pat_profile_resp.data['role'], 'patient')
+        self.assertIsNotNone(pat_profile_resp.data['patient_profile'])
+        self.assertEqual(pat_profile_resp.data['patient_profile']['gender'], self.patient.gender)
+        self.assertIn('activity_summary', pat_profile_resp.data)
+        self.assertGreaterEqual(pat_profile_resp.data['activity_summary']['total_appointments'], 1)
+
+        # 3. Admin retrieves Doctor profile with license, specialty & activity
+        doc_profile_resp = client.get(f'/api/admin/users/{self.doctor_user.id}/')
+        self.assertEqual(doc_profile_resp.status_code, 200)
+        self.assertEqual(doc_profile_resp.data['email'], self.doctor_user.email)
+        self.assertEqual(doc_profile_resp.data['role'], 'doctor')
+        self.assertIsNotNone(doc_profile_resp.data['doctor_profile'])
+        self.assertEqual(doc_profile_resp.data['doctor_profile']['specialty'], 'cardiology')
+        self.assertIn('activity_summary', doc_profile_resp.data)
+        self.assertGreaterEqual(doc_profile_resp.data['activity_summary']['total_appointments'], 1)
+        self.assertEqual(len(doc_profile_resp.data['activity_summary']['recent_appointments']), 1)
+
+
 
 
 
