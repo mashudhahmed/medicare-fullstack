@@ -183,14 +183,33 @@ class RefreshTokenView(APIView):
 
 
 class UserStatusView(APIView):
-    """Check if user is authenticated"""
-    permission_classes = [permissions.IsAuthenticated]
+    """Check if user is authenticated and diagnose auth state"""
+    permission_classes = [permissions.AllowAny]
 
     def get(self, request):
+        auth_meta = request.META.get('HTTP_AUTHORIZATION', '')
+        auth_header = request.headers.get('Authorization', '')
+        from rest_framework_simplejwt.authentication import JWTAuthentication
+        jwt_auth = JWTAuthentication()
+        jwt_user = None
+        jwt_error = None
+        try:
+            auth_result = jwt_auth.authenticate(request)
+            if auth_result:
+                jwt_user = str(auth_result[0])
+        except Exception as e:
+            jwt_error = f"{type(e).__name__}: {str(e)}"
+
         return Response({
-            'is_authenticated': True,
-            'user': UserSerializer(request.user).data
+            'is_authenticated': request.user.is_authenticated,
+            'user': UserSerializer(request.user).data if request.user.is_authenticated else None,
+            'has_http_authorization': bool(auth_meta),
+            'http_authorization_sample': auth_meta[:20] if auth_meta else None,
+            'jwt_user': jwt_user,
+            'jwt_error': jwt_error,
+            'received_headers': list(request.headers.keys()),
         }, status=status.HTTP_200_OK)
+
 
 
 class PasswordResetRequestView(generics.GenericAPIView):
