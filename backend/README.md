@@ -1,6 +1,6 @@
 # MediCare - Backend Service
 
-Production-ready, asynchronous REST API and real-time event service for the MediCare enterprise healthcare management platform. Engineered with Django, Django REST Framework (DRF), and Django Channels.
+Production-ready, asynchronous REST API and healthcare event service for the MediCare telemedicine platform. Engineered with Django 5.1.1, Django REST Framework (DRF), and Django Channels. Deployed on Render with Neon Serverless PostgreSQL.
 
 ---
 
@@ -9,7 +9,9 @@ Production-ready, asynchronous REST API and real-time event service for the Medi
 - [Overview](#overview)
 - [Architecture and Technologies](#architecture-and-technologies)
 - [Domain Models and Applications](#domain-models-and-applications)
-- [Real-Time WebSockets Engine](#real-time-websockets-engine)
+- [Real-Time and WebSocket Architecture](#real-time-and-websocket-architecture)
+- [Background Tasks and Scheduled Jobs](#background-tasks-and-scheduled-jobs)
+- [Transactional Email System](#transactional-email-system)
 - [Security and Authorization](#security-and-authorization)
 - [Directory Structure](#directory-structure)
 - [Prerequisites](#prerequisites)
@@ -18,97 +20,130 @@ Production-ready, asynchronous REST API and real-time event service for the Medi
 - [Running the Application](#running-the-application)
 - [API Endpoints Reference](#api-endpoints-reference)
 - [Automated Testing](#automated-testing)
-- [Production Deployment](#production-deployment)
+- [Production Cloud Deployment (Render & Neon)](#production-cloud-deployment-render--neon)
 - [License](#license)
 
 ---
 
 ## Overview
 
-The MediCare backend serves as the central data access and business logic layer for the platform. It provides high-performance RESTful APIs, real-time push events over WebSockets, role-based access management, transactional email delivery, and persistent clinical record tracking.
+The MediCare backend serves as the core data engine and business logic layer for the healthcare platform. It provides high-performance RESTful APIs, patient health telemetry tracking, clinical appointment slot generation, direct physician messaging, digital prescription management, cash/desk invoice billing with PDF export, transactional email delivery, and persistent electronic medical records (EMR).
 
 ---
 
 ## Architecture and Technologies
 
-- **Runtime & Core Framework**: Python 3.12+, Django 5.1.1, Django REST Framework 3.15.2.
-- **Asynchronous & Real-Time**: Django Channels 4.1.0 running on an ASGI event loop (Uvicorn), supporting persistent WebSocket connections.
-- **Persistence & ORM**: PostgreSQL via `psycopg2-binary` and `dj-database-url`, with automatic fallback to SQLite for local development.
-- **Message Broker & Caching**: Redis 5.2.0 via `django-redis` and `channels-redis` for channel layers and Celery 5.4.0 task scheduling.
-- **API Documentation**: OpenAPI 2.0 / Swagger and ReDoc generated dynamically via `drf-yasg`.
-- **Security & Authentication**: SimpleJWT 5.3.1 (JSON Web Tokens), `django-axes` for brute-force mitigation, and `django-ratelimit` for endpoint rate limiting.
+- **Runtime & Framework**: Python 3.11 / 3.12, Django 5.1.1, Django REST Framework 3.15.2.
+- **Asynchronous Protocol Engine**: Django Channels 4.1.0 supporting WebSocket connections over ASGI.
+- **Database & ORM**: PostgreSQL via `psycopg2-binary` and `dj-database-url` (configured for Neon Serverless PostgreSQL with SSL pooling). Automatic fallback to SQLite for local development.
+- **Media & File Storage**: Cloudinary Python SDK for cloud-hosted clinical documents, radiology scans, lab PDFs, and profile pictures.
+- **Background Tasks & Broker**: Celery 5.4.0 with Redis broker for asynchronous email delivery and scheduled 24-hour appointment reminders.
+- **Authentication & Security**: SimpleJWT 5.3.1 (JSON Web Tokens), PyOTP 2.9.0 (TOTP 2FA), `django-ratelimit` for rate limiting, and `django-axes` for brute-force mitigation.
+- **API Documentation**: OpenAPI 2.0 / Swagger and ReDoc generated via `drf-yasg`.
+- **Application Server**: Gunicorn 23.0.0 (WSGI on Render) and Uvicorn 0.32.0 (ASGI for local WebSockets).
 
 ---
 
 ## Domain Models and Applications
 
-The project is structured under the `apps/` package with modular separation of concerns:
+The domain layer is organized under `backend/apps/`:
 
-### 1. Identity and Roles (`apps/models/user.py`)
+### 1. Identity, Roles and 2FA (`apps/models/user.py`)
 - Extends `AbstractBaseUser` and `PermissionsMixin`.
-- Identity types: `patient`, `doctor`, `admin`.
-- Tracks account verification, activity status, contact details, and authentication metadata.
+- Personas: `patient`, `doctor`, `admin`.
+- Features Two-Factor Authentication fields (`two_factor_enabled`, `totp_secret`) with QR code generation.
+- Account status tracking: `pending`, `approved`, `suspended`.
 
-### 2. Practitioner Profiles (`apps/models/doctor.py`)
-- Links one-to-one with `User`.
-- Captures specialty, medical license number, years of experience, consultation fee, bio, and administrative verification flag (`is_verified`).
+### 2. Clinical Staff Profiles (`apps/models/doctor.py`)
+- One-to-one relation with `User`.
+- Captures specialty, medical license number, qualifications, years of experience, and administrative verification flag (`is_verified`).
+- Scheduling fields: `available_days` (JSON list of active weekdays), `available_time_start`, `available_time_end`, and `consultation_fee`.
 
 ### 3. Patient Profiles (`apps/models/patient.py`)
-- Links one-to-one with `User`.
-- Captures date of birth, blood group, address, medical allergies, and emergency contact details.
+- One-to-one relation with `User`.
+- Captures date of birth, blood group, address, known allergies, and emergency contact details.
 
-### 4. Appointment Engine (`apps/models/appointment.py`)
-- Manages scheduled interactions between patients and verified physicians.
+### 4. Patient Vitals Telemetry (`apps/models/vitals.py`)
+- Clinical telemetry records: Systolic BP, Diastolic BP, Resting Heart Rate, Blood Glucose (with context: Fasting, Post-Meal, Random), Body Temperature, Oxygen Saturation (SpO2), Height (cm), and Weight (kg).
+- Automatic calculation of Body Mass Index (BMI) and categorization (Underweight, Normal, Overweight, Obese).
+
+### 5. Telemedicine Messaging (`apps/models/message.py`)
+- Direct communication channel between patients and verified practitioners.
+- Tracks conversation participants, message content, attachments, read timestamps, and unread counters.
+
+### 6. Appointment Engine (`apps/models/appointment.py`)
+- Manages consultations between patients and doctors.
 - Statuses: `pending`, `confirmed`, `in_progress`, `completed`, `cancelled`, `no_show`.
-- Tracks meeting reason, clinical notes, and unique `video_room_id` for encrypted WebRTC consultations.
+- Automated 30-minute slot generator (`AvailableSlotsView`) based on doctor availability hours and existing bookings.
+- Unique `video_room_id` for sandboxed WebRTC telemedicine video consultations.
+- Reminder tracking fields: `reminder_sent`, `reminder_sent_at`.
 
-### 5. Electronic Medical Records (`apps/models/medical_record.py`)
-- Immutable clinical documentation supporting multiple classifications: `diagnosis`, `prescription`, `test_result`, `vaccination`, `surgery`, `other`.
-- Supports encrypted or restricted visibility via the `is_confidential` boolean flag and binary attachment storage.
+### 7. Electronic Medical Records (`apps/models/medical_record.py`)
+- Classifications: `diagnosis`, `prescription`, `test_result`, `vaccination`, `surgery`, `other`.
+- Cloudinary attachment storage with fallback support.
+- Granular `is_confidential` privacy flag for restricted access.
 
-### 6. Digital Prescriptions (`apps/models/prescription.py`)
-- Direct physician-issued treatment instructions.
-- Tracks diagnosed condition, medication array with dosage instructions, duration, validity end-date, authorized refills, and refills consumed.
-- Refill workflow tracks status transitions: `pending`, `approved`, `rejected`.
+### 8. Prescriptions and Refills (`apps/models/prescription.py`)
+- Physician-issued medication instructions: drug name, dosage, frequency, duration, instructions, and authorized refills.
+- Patient-initiated refill requests with status tracking (`pending`, `approved`, `rejected`).
+- Safety override tracking for clinical risk warnings.
 
-### 7. Invoicing and Payments (`apps/models/billing.py`)
-- Billing invoices linked to appointments or treatments.
-- Payment tracking supporting offline, manual, and online settlement statuses: `pending`, `paid`, `cancelled`, `refunded`.
+### 9. Billing and Invoices (`apps/models/billing.py`)
+- Invoicing linked to consultations.
+- Cash / Desk settlement tracking (`pending`, `paid`, `cancelled`, `refunded`) without third-party payment gateways.
+- Official PDF invoice download support.
 
-### 8. Authentication Codes (`apps/models/password_reset.py`)
-- Temporary 6-digit cryptographic verification codes for password recovery.
-- Enforces a 15-minute sliding window expiration, single-use invalidation, and rate limiting.
+### 10. Audit Logging Subsystem (`apps/models/audit_log.py`)
+- Immutable compliance trail capturing user ID, user email, action type, target resource, IP address, and payload parameters.
 
-### 9. Audit Logging Subsystem (`apps/models/audit_log.py`)
-- Compliance log recording actor identity, action type, IP address, user-agent string, and JSON payload modifications.
+### 11. Password Recovery Codes (`apps/models/password_reset.py`)
+- Cryptographic 6-digit verification codes expiring in 15 minutes with single-use invalidation.
 
 ---
 
-## Real-Time WebSockets Engine
+## Real-Time and WebSocket Architecture
 
-The real-time notification engine utilizes Django Channels over ASGI:
+The platform supports both high-frequency polling and WebSocket connections via Django Channels:
 
-- **Protocol Routing**: Handled in `healthcare_project/asgi.py` using `ProtocolTypeRouter`.
-- **Authentication**: `JWTAuthMiddlewareStack` (`apps/core/jwt_auth_middleware.py`) validates JWT access tokens supplied in query parameters (`?token=<jwt>`) during the initial WebSocket handshake.
-- **Consumer**: `NotificationConsumer` (`apps/api/consumers.py`) establishes user-scoped channel groups (`user_<user_id>`) for real-time unicast push delivery.
-- **Fallback Layer**: In local development where Redis is absent, Channels automatically defaults to `channels.layers.InMemoryChannelLayer`.
+1. **Protocol Routing** (`healthcare_project/asgi.py` & `apps/api/routing.py`):
+   - `/ws/notifications/`: `NotificationConsumer` for user-scoped push alerts.
+   - `/ws/video/<room_id>/`: `VideoCallConsumer` for WebRTC peer signaling.
+2. **Production vs Local**:
+   - In production on Render, the service runs on Gunicorn WSGI for maximum stability across sleep cycles.
+   - Messaging uses high-frequency real-time polling (every 3.5 seconds) over standard HTTPS endpoints, guaranteeing zero dropped connections.
+
+---
+
+## Background Tasks and Scheduled Jobs
+
+Configured in `apps/services/celery_tasks.py`:
+
+- `send_appointment_reminders`: Automated task scanning for confirmed appointments occurring in the 23 to 25 hour window that have not received a reminder.
+- `send_same_day_reminders`: Automated task alerting patients 15 minutes to 2 hours before scheduled consultations with direct video room links.
+- `send_async_email_task`: Asynchronous transactional email dispatch with automatic 3-retry backoff.
+
+---
+
+## Transactional Email System
+
+Professional, classy HTML email templates located in `backend/templates/emails/`:
+
+1. `base.html`: Common layout with clinical teal styling (`#0d9488`), responsive card sizing, and confidentiality disclaimers.
+2. `welcome.html`: Account registration confirmation with credentials summary.
+3. `appointment_confirmation.html`: Structured consultation details card and pre-visit guidelines.
+4. `appointment_reminder.html`: 24-hour advance alert with telemedicine room link.
+5. `doctor_verified.html`: Physician accreditation approval notice.
+6. `password_reset.html`: Monospace 6-digit code box with one-click reset button.
 
 ---
 
 ## Security and Authorization
 
-### Role-Based Access Control (RBAC)
-Custom permission classes located in `apps/core/permissions.py`:
-- `IsAdmin`: Restricts endpoints strictly to users with the `admin` role, staff status, or superuser permissions.
-- `IsDoctor`: Restricts access to authenticated practitioners whose profiles are active.
-- `IsPatient`: Restricts access to registered patients.
-- `IsOwnerOrAdmin`: Object-level check ensuring resource modification is restricted to the resource owner or an administrator.
-- `IsOwnerOrDoctorOrAdmin`: Dual-party clinical permission allowing full write access to the assigned physician and administrator, while granting read-only access to the patient.
-
-### Rate Limiting and Attack Prevention
-- Password reset endpoints are throttled via `django-ratelimit` to mitigate denial-of-service and credential stuffing attacks.
-- Failed authentication attempts trigger account locking policies via `django-axes`.
-- Cross-Origin Resource Sharing (CORS) origins are strictly validated against `CORS_ALLOWED_ORIGINS`.
+- **Role-Based Access Control**: `IsAdmin`, `IsDoctor`, `IsPatient`, `IsOwnerOrAdmin`.
+- **Rate Limiting**: Rate limited via `django-ratelimit` on authentication endpoints (3-5 per minute per IP).
+- **Two-Factor Authentication**: Optional TOTP protection with 15-minute challenge tokens.
+- **Audit Logging**: Comprehensive, non-destructive audit log capturing actor, action, IP, and timestamps.
+- **CORS Protection**: Restricted strictly to authorized frontend domains.
 
 ---
 
@@ -118,55 +153,45 @@ Custom permission classes located in `apps/core/permissions.py`:
 backend/
 ├── apps/
 │   ├── api/                      # Views, consumers, URL routing
-│   │   ├── consumers.py          # WebSocket NotificationConsumer
+│   │   ├── consumers.py          # WebSocket Notification & Video consumers
 │   │   ├── routing.py            # WebSocket URL patterns
 │   │   ├── urls.py               # REST API URL table
-│   │   └── views/                # ViewSets and APIView controllers
-│   ├── core/                     # Foundational utilities
-│   │   ├── jwt_auth_middleware.py# Channels JWT handshake validator
-│   │   ├── permissions.py        # RBAC and object-level permission classes
-│   │   └── pagination.py         # Standardized page-number pagination
+│   │   └── views/                # Domain views (auth, doctors, vitals, billing)
+│   ├── core/                     # Permissions, pagination, JWT middleware
 │   ├── models/                   # Relational database models
-│   │   ├── appointment.py
-│   │   ├── audit_log.py
-│   │   ├── billing.py
-│   │   ├── doctor.py
-│   │   ├── medical_record.py
-│   │   ├── notification.py
-│   │   ├── password_reset.py
-│   │   ├── patient.py
-│   │   ├── prescription.py
-│   │   └── user.py
 │   ├── schemas/                  # DRF serializers and input validators
-│   └── utils/                    # Email helpers, audit log utility functions
+│   ├── services/                 # Notification service and Celery tasks
+│   └── utils/                    # Audit logger, security utilities
 ├── healthcare_project/
-│   ├── asgi.py                   # ASGI application entry point (Channels)
+│   ├── asgi.py                   # Channels ASGI entry point
 │   ├── settings/
-│   │   ├── base.py               # Shared project settings
-│   │   ├── development.py        # Development configuration
-│   │   └── production.py         # Hardened production configuration
-│   ├── urls.py                   # Global routing dispatcher
-│   └── wsgi.py                   # Standard WSGI entry point
-├── manage.py                     # Django management script
-├── seed_admin.py                 # Initial administrator seeding script
-├── seed_data.py                  # Demo clinical data seeding script
-└── requirements.txt              # Production Python package manifest
+│   │   ├── base.py               # Base settings
+│   │   ├── development.py        # Local development settings
+│   │   └── production.py         # Production settings (Render / Neon)
+│   ├── urls.py                   # Primary URL routing
+│   └── wsgi.py                   # Gunicorn WSGI entry point
+├── templates/
+│   └── emails/                   # Transactional email templates
+├── build.sh                      # Render build script
+├── manage.py                     # Django CLI
+├── requirements.txt              # Python dependencies
+└── seed_demo_users.py            # Demo accounts seeder
 ```
 
 ---
 
 ## Prerequisites
 
-- Python 3.10, 3.11, or 3.12
-- PostgreSQL 14+ (or SQLite for local development)
-- Redis 6.0+ (optional for local development, required for production WebSockets)
-- Virtualenv or Conda package manager
+- Python 3.11 or higher
+- PostgreSQL (or SQLite for local development)
+- Redis (optional for local, used by Celery)
+- Virtualenv package manager
 
 ---
 
 ## Installation and Environment Configuration
 
-### 1. Prepare Virtual Environment
+### 1. Setup Virtual Environment
 
 ```bash
 # Windows (PowerShell)
@@ -178,7 +203,7 @@ python3 -m venv venv
 source venv/bin/activate
 ```
 
-### 2. Install Package Dependencies
+### 2. Install Dependencies
 
 ```bash
 pip install --upgrade pip
@@ -190,220 +215,116 @@ pip install -r requirements.txt
 Create a `.env` file inside the `backend/` directory:
 
 ```ini
-# Application Mode
 DJANGO_ENV=development
-SECRET_KEY=change-this-to-a-cryptographically-secure-key-in-production
+SECRET_KEY=your-secure-django-secret-key
 DEBUG=True
 ALLOWED_HOSTS=localhost,127.0.0.1
-
-# Database (Leave unset to use SQLite)
 DATABASE_URL=postgres://postgres:password@localhost:5432/medicare_db
-
-# CORS Allowed Origins
 CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
-
-# Email SMTP Delivery (Gmail Example)
-EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USE_TLS=True
-EMAIL_HOST_USER=your-account@gmail.com
-EMAIL_HOST_PASSWORD=your-16-char-app-password
 DEFAULT_FROM_EMAIL=MediCare <noreply@medicare.local>
-
-# Redis Cache and WebSocket Channel Layer (Optional for development)
-REDIS_URL=redis://127.0.0.1:6379/1
-
-# Cloudinary (Media & Image Uploads)
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-# Alternatively, provide full connection string:
-# CLOUDINARY_URL=cloudinary://<api_key>:<api_secret>@<cloud_name>
 ```
 
 ---
 
 ## Database Migrations and Seeding
 
-### 1. Apply Migrations
-
+Run migrations:
 ```bash
 python manage.py makemigrations
 python manage.py migrate
 ```
 
-### 2. Seed Default Administrator
-
-Run the demo accounts seeding utility:
-
+Seed demo users:
 ```bash
 python manage.py seed_demo_users
 ```
 
-Generated Accounts:
-- **Administrator**:
-  - Email: `admin@medicare.local`
-  - Password: `Admin@Medicare2026!`
-  - Role: `admin` (Active, Staff, Superuser)
-- **Doctor (Cardiology)**:
-  - Email: `doctor@medicare.local`
-  - Password: `Doctor@Medicare2026!`
-  - Role: `doctor` (Verified, Active)
-- **Patient**:
-  - Email: `patient@medicare.local`
-  - Password: `Patient@Medicare2026!`
-  - Role: `patient` (Active)
-
-### 3. Seed Clinical Sample Data (Optional)
-
-Populate doctors, specialties, and initial appointment records:
-
-```bash
-python seed_data.py
-```
+Pre-seeded credentials:
+- **Admin**: `admin@medicare.local` / `Admin@Medicare2026!`
+- **Doctor**: `doctor@medicare.local` / `Doctor@Medicare2026!`
+- **Patient**: `patient@medicare.local` / `Patient@Medicare2026!`
 
 ---
 
 ## Running the Application
 
-### Option A: Standard HTTP Development Server
-
+### Development Server (HTTP)
 ```bash
-python manage.py runserver 8000
+python manage.py runserver
 ```
 
-### Option B: Asynchronous ASGI Server (WebSockets Enabled)
-
+### Development Server (ASGI / WebSockets)
 ```bash
-uvicorn healthcare_project.asgi:application --host 127.0.0.1 --port 8000 --reload
+uvicorn healthcare_project.asgi:application --reload --port 8000
 ```
 
 ---
 
 ## API Endpoints Reference
 
-All endpoints are namespaced under `/api/v1/`.
-
-### Authentication & Account
-
-| Method | Endpoint | Permission | Description |
+| Resource | Method | Endpoint | Description |
 |---|---|---|---|
-| POST | `/api/v1/auth/register/` | AllowAny | Register patient or physician account |
-| POST | `/api/v1/auth/login/` | AllowAny | Authenticate credentials, return JWT pair |
-| POST | `/api/v1/auth/logout/` | IsAuthenticated | Invalidate refresh token |
-| GET, PUT | `/api/v1/auth/profile/` | IsAuthenticated | Retrieve or update profile |
-| POST | `/api/v1/auth/change-password/` | IsAuthenticated | Update authenticated user password |
-| POST | `/api/v1/auth/token/refresh/` | AllowAny | Exchange refresh token for access token |
-| POST | `/api/v1/auth/password-reset/` | AllowAny | Generate and dispatch 6-digit reset code |
-| POST | `/api/v1/auth/password-reset/confirm/` | AllowAny | Validate code and apply new password |
-
-### Administration Panel
-
-| Method | Endpoint | Permission | Description |
-|---|---|---|---|
-| GET | `/api/v1/admin/dashboard/` | IsAdmin | Aggregate platform usage metrics |
-| GET | `/api/v1/admin/users/` | IsAdmin | Query and filter all system users |
-| GET | `/api/v1/admin/users/{id}/` | IsAdmin | Detailed user inspection |
-| PATCH | `/api/v1/admin/users/{id}/status/` | IsAdmin | Activate, suspend, or deactivate user |
-| GET | `/api/v1/admin/doctors/pending/` | IsAdmin | Retrieve unverified physician applications |
-| POST | `/api/v1/admin/doctors/{id}/verify/` | IsAdmin | Approve or revoke physician credentials |
-| GET | `/api/v1/admin/audit-logs/` | IsAdmin | Search and filter immutable audit logs |
-
-### Appointments & Telemedicine
-
-| Method | Endpoint | Permission | Description |
-|---|---|---|---|
-| GET, POST | `/api/v1/appointments/` | IsAuthenticated | List appointments or book consultation |
-| GET, PUT | `/api/v1/appointments/{id}/` | IsOwnerOrDoctorOrAdmin | Retrieve or update appointment details |
-| POST | `/api/v1/appointments/{id}/cancel/` | IsOwnerOrDoctorOrAdmin | Cancel scheduled appointment |
-| POST | `/api/v1/appointments/{id}/reschedule/` | IsOwnerOrDoctorOrAdmin | Adjust consultation time slot |
-| GET | `/api/v1/appointments/{id}/video/` | IsOwnerOrDoctorOrAdmin | Obtain WebRTC session credentials |
-| GET | `/api/v1/appointments/my/` | IsAuthenticated | Filter appointments for current actor |
-
-### Medical Records (EMR)
-
-| Method | Endpoint | Permission | Description |
-|---|---|---|---|
-| GET, POST | `/api/v1/medical-records/` | IsAuthenticated | List or document new medical entry |
-| GET, PUT | `/api/v1/medical-records/{id}/` | IsOwnerOrDoctorOrAdmin | Retrieve or revise medical entry |
-| GET | `/api/v1/medical-records/my/` | IsAuthenticated | Retrieve records owned by current actor |
-| GET | `/api/v1/patients/{id}/records/` | IsDoctor / IsAdmin | Retrieve clinical records for a patient |
-
-### Prescriptions & Refills
-
-| Method | Endpoint | Permission | Description |
-|---|---|---|---|
-| GET, POST | `/api/v1/prescriptions/` | IsAuthenticated | List or issue new digital prescription |
-| GET | `/api/v1/prescriptions/{id}/` | IsOwnerOrDoctorOrAdmin | Detailed prescription view |
-| GET | `/api/v1/prescriptions/my/` | IsAuthenticated | Active prescriptions for authenticated patient |
-| POST | `/api/v1/prescriptions/{id}/refill/` | IsPatient | Submit medication refill request |
-
-### Real-Time Notifications
-
-| Method | Endpoint | Protocol | Description |
-|---|---|---|---|
-| WS | `/ws/notifications/?token=<jwt>` | WebSocket | Real-time notification channel stream |
-| GET | `/api/v1/notifications/` | HTTP | Retrieve notification history |
-| PATCH | `/api/v1/notifications/{id}/read/` | HTTP | Mark single notification as read |
-| POST | `/api/v1/notifications/read-all/` | HTTP | Mark all user notifications as read |
-
-### Cloudinary Media & Avatar Uploads
-
-| Method | Endpoint | Permission | Description |
-|---|---|---|---|
-| POST | `/api/v1/auth/avatar/` | IsAuthenticated | Upload user profile picture to Cloudinary |
-| DELETE | `/api/v1/auth/avatar/` | IsAuthenticated | Remove avatar and delete asset from Cloudinary |
-| POST | `/api/v1/upload/image/` | IsAuthenticated | Upload image or medical document (lab test, scan) |
-| POST | `/api/v1/upload/delete/` | IsAuthenticated | Remove file from Cloudinary by public ID |
+| **Auth** | POST | `/api/v1/auth/login/` | Obtain JWT token pair |
+| **Auth** | POST | `/api/v1/auth/register/` | Register user account |
+| **Auth** | POST | `/api/v1/auth/token/refresh/` | Refresh JWT access token |
+| **Auth** | POST | `/api/v1/auth/password-reset/` | Request 6-digit reset code |
+| **Auth** | POST | `/api/v1/auth/password-reset/confirm/` | Confirm code and set password |
+| **Auth** | POST | `/api/v1/auth/2fa/setup/` | Generate 2FA TOTP secret |
+| **Auth** | POST | `/api/v1/auth/2fa/verify/` | Verify 2FA challenge code |
+| **Doctors** | GET | `/api/v1/doctors/` | List verified doctors |
+| **Doctors** | GET | `/api/v1/doctors/{id}/` | Retrieve doctor details |
+| **Doctors** | PATCH | `/api/v1/doctors/me/` | Update doctor schedule & fee |
+| **Appointments** | GET, POST | `/api/v1/appointments/` | List or book appointments |
+| **Appointments** | GET, PATCH | `/api/v1/appointments/{id}/` | Retrieve or update appointment |
+| **Appointments** | POST | `/api/v1/appointments/{id}/cancel/` | Cancel appointment |
+| **Appointments** | POST | `/api/v1/appointments/{id}/send-reminder/` | Manual reminder dispatch |
+| **Appointments** | GET | `/api/v1/appointments/available-slots/{doc_id}/` | Generate 30-min available slots |
+| **Vitals** | GET, POST | `/api/v1/vitals/` | List or record patient vitals |
+| **Vitals** | DELETE | `/api/v1/vitals/{id}/` | Delete vitals entry |
+| **Messages** | GET | `/api/v1/messages/conversations/` | List active conversations |
+| **Messages** | GET | `/api/v1/messages/thread/{user_id}/` | Fetch conversation thread |
+| **Messages** | POST | `/api/v1/messages/` | Send direct message |
+| **Messages** | GET | `/api/v1/messages/unread-count/` | Unread message counter |
+| **Records** | GET, POST | `/api/v1/medical-records/` | Manage medical records & files |
+| **Prescriptions** | GET, POST | `/api/v1/prescriptions/` | Manage medical prescriptions |
+| **Billing** | GET, POST | `/api/v1/billing/` | Retrieve invoices or record cash settlement |
+| **Admin** | GET | `/api/v1/admin/users/` | List and search users |
+| **Admin** | POST | `/api/v1/admin/doctors/{id}/verify/` | Verify doctor credentials |
+| **Admin** | GET | `/api/v1/admin/audit-logs/` | Query immutable audit logs |
 
 ---
 
 ## Automated Testing
 
-Execute the automated test suite covering authentication, permissions, appointment workflows, and medical record logic:
+Run the automated test suite:
 
 ```bash
-# Run complete test suite
 python manage.py test
-
-# Run tests for specific module
-python manage.py test apps.api.tests
 ```
+
+Verification status: All 23 tests pass cleanly.
 
 ---
 
-## Production Deployment
+## Production Cloud Deployment (Render & Neon)
 
-### Process Management Architecture
-
-For scalable production environments, run distinct workers for HTTP, ASGI, and background tasks:
-
-1. **ASGI Web Server (Uvicorn / Gunicorn)**:
-   ```bash
-   gunicorn healthcare_project.asgi:application \
-       -w 4 \
-       -k uvicorn.workers.UvicornWorker \
-       --bind 0.0.0.0:8000
-   ```
-
-2. **Celery Worker**:
-   ```bash
-   celery -A healthcare_project worker -l info
-   ```
-
-3. **Celery Beat Scheduler**:
-   ```bash
-   celery -A healthcare_project beat -l info
-   ```
-
-4. **Static Assets**:
-   ```bash
-   python manage.py collectstatic --noinput
-   ```
+### Render Backend Service Configuration
+- **Root Directory**: `backend`
+- **Build Command**: `./build.sh`
+- **Start Command**:
+  ```bash
+  gunicorn healthcare_project.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+  ```
+- **Required Render Environment Variables**:
+  - `DJANGO_SETTINGS_MODULE`: `healthcare_project.settings.production`
+  - `DATABASE_URL`: Connection string from Neon PostgreSQL (`sslmode=require`)
+  - `SECRET_KEY`: Production secret key
+  - `CORS_ALLOWED_ORIGINS`: Vercel frontend URL
+  - `FRONTEND_URL`: Vercel frontend URL
+  - `CLOUDINARY_URL`: Cloudinary storage URI
 
 ---
 
 ## License
 
-This project is distributed under the MIT License. See the root `LICENSE` file for full licensing terms.
+This project is licensed under the MIT License. Refer to the `LICENSE` file for details.
