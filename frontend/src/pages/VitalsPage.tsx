@@ -405,10 +405,10 @@ export const VitalsPage: React.FC = () => {
           </div>
 
           {/* Chart View Switcher Tabs */}
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl overflow-x-auto max-w-full">
             <button
               onClick={() => setActiveTab('bp')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition ${
                 activeTab === 'bp'
                   ? 'bg-white text-teal-700 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
@@ -418,7 +418,7 @@ export const VitalsPage: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab('glucose')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition ${
                 activeTab === 'glucose'
                   ? 'bg-white text-teal-700 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
@@ -428,7 +428,7 @@ export const VitalsPage: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab('pulse')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition ${
                 activeTab === 'pulse'
                   ? 'bg-white text-teal-700 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
@@ -438,7 +438,7 @@ export const VitalsPage: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab('bmi')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition ${
                 activeTab === 'bmi'
                   ? 'bg-white text-teal-700 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
@@ -450,7 +450,7 @@ export const VitalsPage: React.FC = () => {
         </div>
 
         {/* Chart Rendering Container */}
-        <div className="h-80 w-full">
+        <div className="h-80 w-full min-w-0">
           {loading ? (
             <div className="h-full flex items-center justify-center text-slate-400 text-sm">
               Loading vitals trends...
@@ -595,7 +595,7 @@ export const VitalsPage: React.FC = () => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-600">
+          <table className="min-w-[960px] w-full text-left text-sm text-slate-600">
             <thead className="bg-slate-50 text-xs uppercase font-semibold text-slate-500 tracking-wider">
               <tr>
                 <th className="px-5 py-3.5">Recorded At</th>

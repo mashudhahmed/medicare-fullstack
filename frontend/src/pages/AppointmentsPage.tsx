@@ -270,9 +270,9 @@ const AppointmentsPage: React.FC = () => {
           </div>
         ) : (
           filteredAppointments.map((appointment) => (
-            <div key={appointment.id} className="card flex justify-between items-center">
-              <div>
-                <div className="flex items-center gap-3">
+            <div key={appointment.id} className="card flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-3 flex-wrap">
                   <h3 className="font-semibold text-medicare-dark">
                     {appointment.doctor_details?.user?.full_name || 'Doctor'}
                   </h3>
@@ -296,7 +296,7 @@ const AppointmentsPage: React.FC = () => {
                   </p>
                 </div>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex flex-wrap items-center gap-2 pt-3 sm:pt-0 border-t sm:border-t-0 border-gray-100">
                 {appointment.status !== 'cancelled' && (
                   <button
                     onClick={() => setVideoApptId(appointment.id)}

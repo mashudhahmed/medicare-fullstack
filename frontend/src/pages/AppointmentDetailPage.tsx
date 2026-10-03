@@ -97,7 +97,7 @@ const AppointmentDetailPage: React.FC = () => {
       <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-medicare-teal to-teal-500 px-6 py-8">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold text-white">Appointment Details</h1>
               <p className="text-teal-100 mt-1">

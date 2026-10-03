@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { adminApi } from '../api/admin';
 import { AuditLog } from '../types';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
@@ -101,11 +101,11 @@ const AdminAuditLogsPage: React.FC = () => {
             className="input-field pl-10"
           />
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
           <select
             value={actionFilter}
             onChange={(e) => setActionFilter(e.target.value)}
-            className="input-field w-36"
+            className="input-field w-full sm:w-36"
           >
             <option value="">All Actions</option>
             <option value="CREATE">CREATE</option>
@@ -118,7 +118,7 @@ const AdminAuditLogsPage: React.FC = () => {
           <select
             value={resourceFilter}
             onChange={(e) => setResourceFilter(e.target.value)}
-            className="input-field w-40"
+            className="input-field w-full sm:w-40"
           >
             <option value="">All Resources</option>
             <option value="User">User</option>
@@ -151,7 +151,7 @@ const AdminAuditLogsPage: React.FC = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-sm">
+            <table className="min-w-[820px] w-full text-left border-collapse text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   <th className="py-3 px-4">Timestamp</th>

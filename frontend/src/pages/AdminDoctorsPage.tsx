@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { adminApi } from '../api/admin';
 import type { Doctor } from '../types';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
-import { FaUserMd, FaCheckCircle, FaTimesCircle, FaClock } from 'react-icons/fa';
+import { FaUserMd, FaCheckCircle, FaTimesCircle, FaClock, FaIdCard, FaSyncAlt } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 const AdminDoctorsPage: React.FC = () => {
@@ -31,7 +31,7 @@ const AdminDoctorsPage: React.FC = () => {
     try {
       setActionId(doctorId);
       await adminApi.approveDoctor(doctorId, true);
-      toast.success('Doctor approved successfully');
+      toast.success('Doctor credentials verified and approved');
       await fetchPending();
     } catch {
       toast.error('Failed to approve doctor');
@@ -44,84 +44,134 @@ const AdminDoctorsPage: React.FC = () => {
     try {
       setActionId(doctorId);
       await adminApi.verifyDoctor(doctorId, false);
-      toast.success('Doctor verification revoked');
+      toast.success('Doctor verification status updated');
       await fetchPending();
     } catch {
-      toast.error('Failed to update doctor');
+      toast.error('Failed to update doctor verification');
     } finally {
       setActionId(null);
     }
   };
 
-  if (loading) return <LoadingSpinner />;
+  if (loading && pending.length === 0) return <LoadingSpinner />;
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold text-medicare-dark">Pending Doctors</h1>
-        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 text-sm font-medium">
-          <FaClock /> {pending.length} pending
-        </span>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 flex items-center gap-2.5">
+            <FaUserMd className="text-teal-600" /> Pending Doctor Approvals
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Review submitted clinical credentials, medical board licenses, and approve practitioners for patient consultations.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold">
+            <FaClock className="text-amber-600" /> {pending.length} Pending Verification
+          </span>
+          <button
+            onClick={() => fetchPending()}
+            className="p-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 transition shrink-0 min-h-[40px] min-w-[40px] flex items-center justify-center"
+            title="Refresh List"
+          >
+            <FaSyncAlt />
+          </button>
+        </div>
       </div>
 
       {pending.length === 0 ? (
-        <div className="bg-white rounded-xl shadow p-12 text-center text-gray-500">
-          <FaUserMd className="mx-auto text-5xl mb-4 text-gray-300" />
-          <p className="text-lg">No doctors waiting for verification.</p>
+        <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-12 text-center text-slate-500">
+          <div className="w-16 h-16 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center text-2xl mx-auto mb-3 border border-teal-100">
+            <FaCheckCircle />
+          </div>
+          <h3 className="text-base font-semibold text-slate-800">All Doctors Verified</h3>
+          <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+            There are currently no physician accounts awaiting clinical approval or credentials verification.
+          </p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Specialty</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">License</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Experience</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {pending.map((doc) => (
-                <tr key={doc.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {doc.user?.full_name ?? '—'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {doc.user?.email ?? '—'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
-                    {doc.specialty}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {doc.license_number}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {doc.experience_years} yrs
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
-                    <button
-                      type="button"
-                      disabled={actionId === doc.id}
-                      onClick={() => handleApprove(doc.id)}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs font-medium hover:bg-green-700 disabled:opacity-50"
-                    >
-                      <FaCheckCircle /> Approve
-                    </button>
-                    <button
-                      type="button"
-                      disabled={actionId === doc.id}
-                      onClick={() => handleReject(doc.id)}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-100 text-red-700 text-xs font-medium hover:bg-red-200 disabled:opacity-50"
-                    >
-                      <FaTimesCircle /> Reject
-                    </button>
-                  </td>
+        <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[800px] divide-y divide-slate-100 text-left">
+              <thead className="bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <tr>
+                  <th className="px-6 py-3.5">Doctor Candidate</th>
+                  <th className="px-6 py-3.5">Specialty</th>
+                  <th className="px-6 py-3.5">License & Qualifications</th>
+                  <th className="px-6 py-3.5">Experience</th>
+                  <th className="px-6 py-3.5">Fee Rate</th>
+                  <th className="px-6 py-3.5 text-right">Verification Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-sm">
+                {pending.map((doc) => (
+                  <tr key={doc.id} className="hover:bg-slate-50/70 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-teal-50 text-teal-700 flex items-center justify-center font-bold text-sm shrink-0 border border-teal-100 relative overflow-hidden">
+                          <span>{doc.user?.full_name?.charAt(0) || 'D'}</span>
+                          {doc.user?.profile_picture && (
+                            <img
+                              src={doc.user.profile_picture}
+                              alt={doc.user.full_name}
+                              className="absolute inset-0 w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-slate-900 truncate">Dr. {doc.user?.full_name ?? 'Physician'}</p>
+                          <p className="text-xs text-slate-500 truncate">{doc.user?.email ?? '—'}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-50 text-teal-700 border border-teal-200 capitalize">
+                        {doc.specialty || 'General'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="font-medium text-slate-800 text-xs flex items-center gap-1.5">
+                        <FaIdCard className="text-slate-400" /> {doc.license_number || 'Pending Submission'}
+                      </p>
+                      <p className="text-[11px] text-slate-500 truncate mt-0.5">
+                        {doc.qualification || 'Medical Graduate'}
+                      </p>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-600 font-medium">
+                      {doc.experience_years ? `${doc.experience_years} years` : 'New practitioner'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-xs font-semibold text-slate-900">
+                      ${Number(doc.consultation_fee || 0).toFixed(2)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right space-x-2">
+                      <button
+                        type="button"
+                        disabled={actionId === doc.id}
+                        onClick={() => handleApprove(doc.id)}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-teal-600 text-white text-xs font-semibold hover:bg-teal-700 disabled:opacity-50 transition shadow-xs"
+                      >
+                        <FaCheckCircle /> Approve
+                      </button>
+                      <button
+                        type="button"
+                        disabled={actionId === doc.id}
+                        onClick={() => handleReject(doc.id)}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 text-xs font-semibold hover:bg-rose-100 disabled:opacity-50 transition"
+                      >
+                        <FaTimesCircle /> Reject
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

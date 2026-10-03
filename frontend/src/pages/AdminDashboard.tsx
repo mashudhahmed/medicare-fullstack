@@ -212,7 +212,7 @@ const AdminDashboard: React.FC = () => {
       {/* Analytics Visualizations */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Monthly Activity Trend */}
-        <div className="bg-white rounded-xl shadow p-6">
+        <div className="bg-white rounded-xl shadow p-6 min-w-0">
           <div className="mb-4">
             <h2 className="text-lg font-bold text-medicare-dark">Monthly Operational Activity</h2>
             <p className="text-xs text-gray-500">Consultation volume and paid revenue over the past 6 months</p>
@@ -271,7 +271,7 @@ const AdminDashboard: React.FC = () => {
         </div>
 
         {/* Clinical Specialty Distribution */}
-        <div className="bg-white rounded-xl shadow p-6">
+        <div className="bg-white rounded-xl shadow p-6 min-w-0">
           <div className="mb-4">
             <h2 className="text-lg font-bold text-medicare-dark">Clinical Specialty Breakdown</h2>
             <p className="text-xs text-gray-500">Distribution of licensed medical doctors across specialties</p>
@@ -414,22 +414,22 @@ const AdminDashboard: React.FC = () => {
             {doctors
               .filter((d) => !d.is_verified)
               .map((doctor) => (
-                <div key={doctor.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div key={doctor.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-gray-50 rounded-lg">
                   <div>
-                    <p className="font-medium">{doctor.user.full_name}</p>
+                    <p className="font-medium text-gray-900">{doctor.user.full_name}</p>
                     <p className="text-sm text-gray-600">{doctor.specialty}</p>
-                    <p className="text-sm text-gray-500">{doctor.license_number}</p>
+                    <p className="text-xs text-gray-400 font-mono mt-0.5">{doctor.license_number}</p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
                     <button
                       onClick={() => handleVerifyDoctor(doctor.id, true)}
-                      className="btn-success text-sm flex items-center"
+                      className="btn-success text-sm flex items-center justify-center flex-1 sm:flex-initial"
                     >
                       <FaCheckCircle className="mr-1" /> Verify
                     </button>
                     <button
                       onClick={() => handleVerifyDoctor(doctor.id, false)}
-                      className="btn-danger text-sm flex items-center"
+                      className="btn-danger text-sm flex items-center justify-center flex-1 sm:flex-initial"
                     >
                       <FaTimesCircle className="mr-1" /> Reject
                     </button>
@@ -443,8 +443,8 @@ const AdminDashboard: React.FC = () => {
       {/* Users List */}
       <div className="bg-white rounded-xl shadow p-6">
         <h2 className="text-xl font-semibold text-medicare-dark mb-4">Recent Users</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+        <div className="overflow-x-auto -mx-6 px-6">
+          <table className="min-w-[640px] w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>

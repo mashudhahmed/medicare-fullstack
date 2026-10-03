@@ -257,8 +257,8 @@ const MedicalRecordsPage: React.FC = () => {
         ) : (
           filteredRecords.map((record) => (
             <div key={record.id} className="card">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 flex-wrap">
                     <span className={`badge ${getTypeColor(record.record_type)}`}>
                       {record.record_type}
@@ -274,14 +274,14 @@ const MedicalRecordsPage: React.FC = () => {
                   </div>
                 </div>
                 {record.attachment_file && (
-                  <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3 ml-4">
+                  <div className="flex items-center gap-3 w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-gray-100 shrink-0">
                     {/\.(jpe?g|png|webp|gif)(\?.*)?$/i.test(record.attachment_file) && (
                       <a
                         href={record.attachment_file}
                         target="_blank"
                         rel="noopener noreferrer"
                         title="View attachment image"
-                        className="block overflow-hidden rounded-lg border border-slate-200 hover:opacity-90 shadow-sm"
+                        className="block overflow-hidden rounded-lg border border-slate-200 hover:opacity-90 shadow-sm shrink-0"
                       >
                         <img
                           src={record.attachment_file}
