@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import messagesApi from '../api/messages';
@@ -25,12 +25,6 @@ export const MessagesPage: React.FC = () => {
 
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [activePartnerId, setActivePartnerId] = useState<string | null>(initialUserId || null);
-  const [activePartner, setActivePartner] = useState<{
-    id: string;
-    name: string;
-    role: string;
-    avatar?: string;
-  } | null>(null);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
@@ -49,16 +43,55 @@ export const MessagesPage: React.FC = () => {
   >([]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const prevMessagesLengthRef = useRef<number>(0);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
   };
 
-  // Fetch all conversations
+  // Derive active partner details with useMemo to avoid cascading re-renders
+  const activePartner = useMemo(() => {
+    if (!activePartnerId) return null;
+    const foundConv = conversations.find((c) => c.user_id === activePartnerId);
+    if (foundConv) {
+      return {
+        id: foundConv.user_id,
+        name: foundConv.full_name,
+        role: foundConv.role,
+        avatar: foundConv.profile_picture,
+      };
+    }
+    const foundContact = availableContacts.find((c) => c.id === activePartnerId);
+    if (foundContact) {
+      return {
+        id: foundContact.id,
+        name: foundContact.name,
+        role: foundContact.role,
+        avatar: foundContact.avatar,
+      };
+    }
+    return null;
+  }, [activePartnerId, conversations, availableContacts]);
+
+  // Fetch all conversations with reference preservation to prevent list flickering
   const fetchConversations = useCallback(async () => {
     try {
       const data = await messagesApi.getConversations();
-      setConversations(data);
+      setConversations((prev) => {
+        if (
+          prev.length === data.length &&
+          prev.every(
+            (c, i) =>
+              c.user_id === data[i].user_id &&
+              c.unread_count === data[i].unread_count &&
+              c.last_message === data[i].last_message &&
+              c.last_message_at === data[i].last_message_at
+          )
+        ) {
+          return prev;
+        }
+        return data;
+      });
     } catch {
       console.error('Failed to load conversations');
     } finally {
@@ -66,12 +99,25 @@ export const MessagesPage: React.FC = () => {
     }
   }, []);
 
-  // Fetch thread messages for active partner
+  // Fetch thread messages for active partner with equality guard to prevent DOM reconstruction
   const fetchThread = useCallback(async (partnerId: string, isSilent = false) => {
     if (!isSilent) setLoadingMessages(true);
     try {
       const data = await messagesApi.getThread(partnerId);
-      setMessages(data);
+      setMessages((prev) => {
+        if (
+          prev.length === data.length &&
+          prev.every(
+            (m, i) =>
+              m.id === data[i].id &&
+              m.is_read === data[i].is_read &&
+              m.content === data[i].content
+          )
+        ) {
+          return prev;
+        }
+        return data;
+      });
     } catch {
       if (!isSilent) toast.error('Failed to load messages');
     } finally {
@@ -79,7 +125,7 @@ export const MessagesPage: React.FC = () => {
     }
   }, []);
 
-  // Initial load
+  // Initial load of conversations
   useEffect(() => {
     fetchConversations();
   }, [fetchConversations]);
@@ -123,48 +169,33 @@ export const MessagesPage: React.FC = () => {
     loadContacts();
   }, [user?.role]);
 
-  // When active partner changes
+  // When active partner changes: trigger fetchThread only on partner ID switch
   useEffect(() => {
     if (activePartnerId) {
-      // Find partner details from conversations or available contacts
-      const foundConv = conversations.find((c) => c.user_id === activePartnerId);
-      if (foundConv) {
-        setActivePartner({
-          id: foundConv.user_id,
-          name: foundConv.full_name,
-          role: foundConv.role,
-          avatar: foundConv.profile_picture,
-        });
-      } else {
-        const foundContact = availableContacts.find((c) => c.id === activePartnerId);
-        if (foundContact) {
-          setActivePartner({
-            id: foundContact.id,
-            name: foundContact.name,
-            role: foundContact.role,
-            avatar: foundContact.avatar,
-          });
-        }
-      }
-
-      fetchThread(activePartnerId);
+      prevMessagesLengthRef.current = 0;
+      fetchThread(activePartnerId, false);
       setShowMobileChat(true);
+    } else {
+      setMessages([]);
     }
-  }, [activePartnerId, conversations, availableContacts, fetchThread]);
+  }, [activePartnerId, fetchThread]);
 
-  // Auto-scroll on messages update
+  // Auto-scroll only when new messages are added
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (messages.length > prevMessagesLengthRef.current) {
+      scrollToBottom(prevMessagesLengthRef.current === 0 ? 'auto' : 'smooth');
+      prevMessagesLengthRef.current = messages.length;
+    }
+  }, [messages.length]);
 
-  // Polling for real-time live message updates
+  // Background polling without setting loading states or resetting references
   useEffect(() => {
-    if (!activePartnerId) return;
-
     const interval = setInterval(() => {
-      fetchThread(activePartnerId, true);
+      if (activePartnerId) {
+        fetchThread(activePartnerId, true);
+      }
       fetchConversations();
-    }, 3500);
+    }, 4000);
 
     return () => clearInterval(interval);
   }, [activePartnerId, fetchThread, fetchConversations]);
