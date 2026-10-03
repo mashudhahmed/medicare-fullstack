@@ -232,6 +232,47 @@ class JoinVideoConsultationView(APIView):
             appointment.status = 'in_progress'
             appointment.save(update_fields=['status'])
 
+        # Counterparty notification: notify patient when doctor enters, or doctor when patient enters
+        recipient = None
+        notif_title = None
+        notif_message = None
+
+        if is_doctor:
+            recipient = appointment.patient.user
+            notif_title = "Doctor in Consultation Room"
+            notif_message = (
+                f"Dr. {appointment.doctor.user.get_full_name()} has joined the video consultation "
+                f"for your appointment. Click to join now."
+            )
+        elif is_patient:
+            recipient = appointment.doctor.user
+            notif_title = "Patient in Waiting Room"
+            notif_message = (
+                f"Patient {appointment.patient.user.get_full_name()} has entered the video consultation room "
+                f"and is waiting for you."
+            )
+
+        if recipient and notif_title and notif_message:
+            from apps.services.notification_service import NotificationService
+            from apps.models.notification import Notification
+
+            # 15-minute throttle per appointment to prevent repeated alerts on page refresh
+            recent_alert = Notification.objects.filter(
+                user=recipient,
+                notification_type=Notification.Type.APPOINTMENT,
+                message__contains=str(appointment.id),
+                created_at__gte=timezone.now() - timedelta(minutes=15)
+            ).exists()
+
+            if not recent_alert:
+                NotificationService.send_user_notification(
+                    user=recipient,
+                    title=notif_title,
+                    message=f"{notif_message} (Ref: {appointment.id})",
+                    category="APPOINTMENT",
+                    send_email=True
+                )
+
         from apps.utils.audit import log_audit
         log_audit(
             request=request,

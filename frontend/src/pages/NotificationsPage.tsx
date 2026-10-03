@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { notificationsApi } from '../api/notifications';
 import { Notification } from '../types';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
@@ -216,10 +217,18 @@ const NotificationsPage: React.FC = () => {
                   <span className="text-[11px] capitalize bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-medium">
                     {notification.notification_type}
                   </span>
+                  {notification.notification_type === 'appointment' && (
+                    <Link
+                      to="/appointments"
+                      className="text-xs text-medicare-teal hover:underline font-semibold"
+                    >
+                      Open Appointments &rarr;
+                    </Link>
+                  )}
                   {!notification.is_read && (
                     <button
                       onClick={() => markAsRead(notification.id)}
-                      className="text-xs text-medicare-teal hover:underline font-medium"
+                      className="text-xs text-gray-500 hover:text-gray-700 hover:underline font-medium"
                     >
                       Mark as read
                     </button>

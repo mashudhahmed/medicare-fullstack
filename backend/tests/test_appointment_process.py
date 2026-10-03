@@ -119,6 +119,16 @@ class AppointmentProcessFlowTest(TestCase):
         self.assertTrue(video_resp.data['is_doctor'])
         self.assertEqual(video_resp.data['status'], 'in_progress')
 
+        # Verify counterparty notification dispatched to patient
+        from apps.models.notification import Notification
+        patient_notif = Notification.objects.filter(
+            user=self.patient_user,
+            notification_type=Notification.Type.APPOINTMENT,
+            title__icontains='Doctor in Consultation Room'
+        ).first()
+        self.assertIsNotNone(patient_notif)
+        self.assertIn(str(appt_id), patient_notif.message)
+
         # 6. Unauthorized user cannot access video consultation
         self.client.force_authenticate(user=self.other_patient_user)
         unauth_video = self.client.get(f'/api/appointments/{appt_id}/video/')

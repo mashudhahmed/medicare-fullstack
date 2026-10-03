@@ -177,14 +177,44 @@ const AppointmentDetailPage: React.FC = () => {
             </div>
           )}
 
+          {/* Live In-Progress Consultation Alert Banner */}
+          {appointment.status === 'in_progress' && (
+            <div className="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+              <div className="flex items-center space-x-3">
+                <span className="w-3 h-3 rounded-full bg-emerald-500 animate-ping shrink-0" />
+                <div>
+                  <h4 className="text-sm font-bold text-emerald-950">
+                    Live Telemedicine Consultation Active
+                  </h4>
+                  <p className="text-xs text-emerald-700 mt-0.5">
+                    A participant has entered the consultation room. Join now to begin the session.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowVideoModal(true)}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-semibold shadow-sm transition shrink-0"
+              >
+                Enter Live Room
+              </button>
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex flex-wrap gap-3 mt-6 pt-6 border-t border-gray-200">
             {appointment.status !== 'cancelled' && (
               <button
                 onClick={() => setShowVideoModal(true)}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl flex items-center font-semibold shadow-md transition"
+                className={`px-5 py-2.5 rounded-xl flex items-center font-semibold shadow-md transition ${
+                  appointment.status === 'in_progress'
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white ring-4 ring-emerald-300 ring-offset-2 animate-pulse'
+                    : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                }`}
               >
-                <FaVideo className="mr-2" /> Start Video Consultation
+                <FaVideo className="mr-2" />
+                {appointment.status === 'in_progress'
+                  ? 'Join Active Live Consultation'
+                  : 'Start Video Consultation'}
               </button>
             )}
             {canCancel && (
