@@ -3,22 +3,40 @@
 {% block title %}Welcome to MediCare{% endblock %}
 
 {% block content %}
-  <h2>Welcome to MediCare 🎉</h2>
-  <p>Hello <strong>{{ full_name }}</strong>,</p>
-  <p>Thank you for joining MediCare! Your account has been created successfully.</p>
+  <h2>Welcome to MediCare</h2>
+  <p>Hello <strong>{{ user.get_full_name|default:full_name|default:"Member" }}</strong>,</p>
+  <p>Thank you for creating an account with MediCare. Your profile is now registered on our secure healthcare platform.</p>
 
-  <div class="info-box">
-    <p>You can now:</p>
-    <ul style="margin: 8px 0; padding-left: 20px; color: #475569;">
-      <li>Book appointments with verified doctors</li>
-      <li>View and manage your medical records</li>
-      <li>Track billing and payments</li>
-    </ul>
+  <div class="detail-card">
+    <div class="detail-row">
+      <span class="detail-label">Account Name</span>
+      <span class="detail-value">{{ user.get_full_name|default:full_name }}</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">Registered Email</span>
+      <span class="detail-value">{{ user.email }}</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">Account Role</span>
+      <span class="detail-value">{{ user.role|title }}</span>
+    </div>
   </div>
 
-  <a href="{{ frontend_url }}/dashboard" class="button">
-    Go to Dashboard
-  </a>
+  <p>Through your portal, you can now:</p>
+  <ul style="margin: 0 0 20px 0; padding-left: 20px; color: #475569; font-size: 14px; line-height: 1.8;">
+    <li>Schedule consultations with certified physicians</li>
+    <li>Attend high-definition telemedicine video sessions</li>
+    <li>Access diagnoses, test results, and prescriptions</li>
+    <li>Message your doctors for direct follow-up care</li>
+  </ul>
 
-  <p>We’re excited to have you on board!</p>
+  {% if frontend_url %}
+  <a href="{{ frontend_url }}/dashboard" class="button">Access Patient Dashboard</a>
+  {% else %}
+  <a href="#" class="button">Access Patient Dashboard</a>
+  {% endif %}
+
+  <div class="notice-box">
+    If you did not create this account or believe this message was sent in error, please contact our support team immediately.
+  </div>
 {% endblock %}

@@ -227,11 +227,24 @@ class PasswordResetRequestView(generics.GenericAPIView):
             f"If you didn't request this, please ignore this email."
         )
 
+        html_message = None
+        try:
+            from django.template.loader import render_to_string
+            html_message = render_to_string('emails/password_reset.html', {
+                'user': user,
+                'user_name': user.get_full_name(),
+                'code': reset_code.code,
+                'reset_link': reset_link,
+            })
+        except Exception:
+            html_message = None
+
         send_mail(
             subject="Password Reset Code - MediCare",
             message=email_message,
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[user.email],
+            html_message=html_message,
             fail_silently=False,
         )
 
