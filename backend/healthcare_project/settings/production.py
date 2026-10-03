@@ -23,6 +23,14 @@ ALLOWED_HOSTS = [
     if h.strip()
 ]
 
+# Automatically permit Render external hostname and all .onrender.com subdomains
+render_host = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
+if render_host and render_host not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(render_host)
+if ".onrender.com" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(".onrender.com")
+
+
 # ---------------------------------------------------------------------------
 # Database – prefer DATABASE_URL, fall back to individual vars
 # ---------------------------------------------------------------------------
@@ -120,16 +128,33 @@ CELERY_TASK_TIME_LIMIT = 30 * 60
 CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60
 
 # ---------------------------------------------------------------------------
-# CORS – strict allow-list only
+# CORS & CSRF – strict allow-list + automatic Vercel / Render support
 # ---------------------------------------------------------------------------
 CORS_ALLOWED_ORIGINS = [
     origin.strip()
     for origin in os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",")
     if origin.strip()
 ]
+# Automatically allow any Vercel deployment domain (production and preview URLs)
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https:\/\/.*\.vercel\.app$",
+]
 CORS_ALLOW_CREDENTIALS = True
-# Never allow all origins in production
 CORS_ALLOW_ALL_ORIGINS = False
+
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",")
+    if origin.strip()
+]
+if render_host:
+    if f"https://{render_host}" not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(f"https://{render_host}")
+CSRF_TRUSTED_ORIGINS.extend([
+    "https://*.onrender.com",
+    "https://*.vercel.app",
+])
+
 
 # ---------------------------------------------------------------------------
 # Static files (WhiteNoise)
