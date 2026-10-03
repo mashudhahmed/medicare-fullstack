@@ -226,7 +226,7 @@ const AdminUsersPage: React.FC = () => {
   if (loading && users.length === 0) return <LoadingSpinner />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-full min-w-0">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -317,9 +317,9 @@ const AdminUsersPage: React.FC = () => {
       </div>
 
       {/* Users Table */}
-      <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[800px] divide-y divide-slate-100 text-left">
+      <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden w-full max-w-full min-w-0">
+        <div className="overflow-x-auto w-full max-w-full table-scrollbar overscroll-x-contain">
+          <table className="w-full min-w-[760px] divide-y divide-slate-100 text-left">
             <thead className="bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
               <tr>
                 <th className="px-6 py-3.5">User Details</th>
@@ -514,7 +514,7 @@ const AdminUsersPage: React.FC = () => {
             </div>
 
             {/* Modal Scrollable Body */}
-            <div className="p-5 sm:p-6 overflow-y-auto space-y-6 text-sm flex-1">
+            <div className="p-5 sm:p-6 overflow-y-auto overflow-x-hidden space-y-6 text-sm flex-1">
               {loadingDetail || !activeUserDetail ? (
                 <div className="py-16 text-center">
                   <LoadingSpinner />
