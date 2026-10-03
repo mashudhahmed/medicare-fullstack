@@ -12,7 +12,7 @@ import {
   FaTimes,
   FaSpinner,
 } from 'react-icons/fa';
-import api from '../../api/client';
+import { appointmentsApi } from '../../api/appointments';
 import toast from 'react-hot-toast';
 
 interface VideoConsultationModalProps {
@@ -100,11 +100,11 @@ export const VideoConsultationModal: React.FC<VideoConsultationModalProps> = ({
     const startSession = async () => {
       setCallStatus('initializing');
       try {
-        const response = await api.get(`/appointments/${appointmentId}/video/`);
+        const data = await appointmentsApi.getVideoSession(appointmentId);
         if (!isMounted) return;
-        setSessionData(response.data);
+        setSessionData(data);
 
-        const roomName = response.data.video_room_id || `medicare-${appointmentId.slice(0, 8)}`;
+        const roomName = data.video_room_id || `medicare-${appointmentId.slice(0, 8)}`;
 
         // Request local audio and video
         let stream: MediaStream;
@@ -173,8 +173,8 @@ export const VideoConsultationModal: React.FC<VideoConsultationModalProps> = ({
         // Connect to Django Channels Signaling WebSocket
         const token = localStorage.getItem('access_token');
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsHost = import.meta.env.VITE_WS_URL
-          ? import.meta.env.VITE_WS_URL.replace(/^http/, 'ws')
+        const wsHost = (import.meta.env.VITE_WS_BASE_URL || import.meta.env.VITE_WS_URL)
+          ? (import.meta.env.VITE_WS_BASE_URL || import.meta.env.VITE_WS_URL).replace(/^http/, 'ws')
           : `${wsProtocol}//${window.location.hostname}:8000/ws`;
         const wsUrl = `${wsHost}/video/${roomName}/?token=${token || ''}`;
 
