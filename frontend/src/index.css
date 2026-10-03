@@ -9,6 +9,43 @@
     box-sizing: border-box;
   }
 
+  /* Global Application Themed Scrollbar (Medicare Theme) */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f8fafc;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #f8fafc;
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 9999px;
+    border: 2px solid #f8fafc;
+    background-clip: padding-box;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: #0d9488;
+    border: 1.5px solid #f8fafc;
+  }
+
+  ::-webkit-scrollbar-thumb:active {
+    background-color: #0f766e;
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -135,18 +172,68 @@
     width: 6px;
   }
   .table-scrollbar::-webkit-scrollbar-track {
-    background: #f1f5f9;
+    background: #f8fafc;
     border-radius: 9999px;
   }
   .table-scrollbar::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
+    background-color: #cbd5e1;
     border-radius: 9999px;
+    border: 1px solid #f8fafc;
+    background-clip: padding-box;
+    transition: background-color 0.2s ease;
   }
   .table-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
+    background-color: #0d9488;
   }
   .table-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: #cbd5e1 #f1f5f9;
+    scrollbar-color: #cbd5e1 #f8fafc;
+  }
+
+  /* Dark themed scrollbar for dark surfaces (e.g. sidebar navigation) */
+  .dark-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .dark-scrollbar::-webkit-scrollbar-track {
+    background: #0f172a;
+  }
+  .dark-scrollbar::-webkit-scrollbar-thumb {
+    background-color: #334155;
+    border-radius: 9999px;
+    border: 1.5px solid #0f172a;
+    background-clip: padding-box;
+    transition: background-color 0.2s ease;
+  }
+  .dark-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: #0d9488;
+  }
+  .dark-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #334155 #0f172a;
+  }
+
+  /* Prominent Teal scrollbar */
+  .teal-scrollbar::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+  }
+  .teal-scrollbar::-webkit-scrollbar-track {
+    background: #f0fdfa;
+    border-radius: 9999px;
+  }
+  .teal-scrollbar::-webkit-scrollbar-thumb {
+    background-color: #14b8a6;
+    border-radius: 9999px;
+    border: 1.5px solid #f0fdfa;
+    background-clip: padding-box;
+    transition: background-color 0.2s ease;
+  }
+  .teal-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: #0f766e;
+  }
+  .teal-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #14b8a6 #f0fdfa;
   }
 }
