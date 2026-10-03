@@ -209,26 +209,26 @@ export const VitalsPage: React.FC = () => {
   }, [vitals]);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="w-full max-w-7xl mx-auto space-y-6 overflow-hidden">
       {/* Top Banner / Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl">
+            <div className="w-11 h-11 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl shrink-0">
               <FaHeartbeat />
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-800">
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-800 truncate">
                 {isDoctorOrAdmin ? 'Patient Health Vitals Tracker' : 'My Health Vitals Tracker'}
               </h1>
-              <p className="text-sm text-slate-500">
+              <p className="text-xs sm:text-sm text-slate-500">
                 Log biometric indicators, track longitudinal trends, and monitor cardiovascular metrics
               </p>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 shrink-0">
           {isDoctorOrAdmin && patients.length > 0 && (
             <div className="flex items-center gap-2">
               <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
@@ -405,7 +405,7 @@ export const VitalsPage: React.FC = () => {
           </div>
 
           {/* Chart View Switcher Tabs */}
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl overflow-x-auto max-w-full">
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-1 bg-slate-100 p-1 rounded-xl">
             <button
               onClick={() => setActiveTab('bp')}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition ${
@@ -450,7 +450,7 @@ export const VitalsPage: React.FC = () => {
         </div>
 
         {/* Chart Rendering Container */}
-        <div className="h-80 w-full min-w-0">
+        <div className="h-80 w-full min-w-0 overflow-hidden">
           {loading ? (
             <div className="h-full flex items-center justify-center text-slate-400 text-sm">
               Loading vitals trends...
@@ -582,84 +582,259 @@ export const VitalsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Historical Data Table */}
+      {/* Historical Data Table / Responsive Card View */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+        <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <FaTable className="text-teal-600" />
-            <h2 className="text-lg font-bold text-slate-800">Recorded Vitals Log History</h2>
+            <h2 className="text-base sm:text-lg font-bold text-slate-800">Recorded Vitals Log History</h2>
           </div>
-          <span className="text-xs text-slate-500 font-medium">
-            Total Records: {vitals.length}
+          <span className="text-xs text-slate-500 font-semibold bg-slate-100 px-2.5 py-1 rounded-full w-fit">
+            {vitals.length} {vitals.length === 1 ? 'Record' : 'Records'}
           </span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="min-w-[960px] w-full text-left text-sm text-slate-600">
-            <thead className="bg-slate-50 text-xs uppercase font-semibold text-slate-500 tracking-wider">
-              <tr>
-                <th className="px-5 py-3.5">Recorded At</th>
-                <th className="px-5 py-3.5">BP (mmHg)</th>
-                <th className="px-5 py-3.5">Pulse</th>
-                <th className="px-5 py-3.5">Glucose</th>
-                <th className="px-5 py-3.5">SpO2 / Temp</th>
-                <th className="px-5 py-3.5">Weight / BMI</th>
-                <th className="px-5 py-3.5">Recorded By</th>
-                <th className="px-5 py-3.5">Notes</th>
-                <th className="px-5 py-3.5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {vitals.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="px-5 py-8 text-center text-slate-400">
-                    No vital signs recorded yet.
-                  </td>
-                </tr>
-              ) : (
-                [...vitals].reverse().map((vital) => (
-                  <tr key={vital.id} className="hover:bg-slate-50 transition">
-                    <td className="px-5 py-3.5 whitespace-nowrap text-slate-800 font-medium">
-                      {new Date(vital.recorded_at).toLocaleDateString()}{' '}
-                      <span className="text-xs text-slate-400 font-normal">
-                        {new Date(vital.recorded_at).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5 whitespace-nowrap">
-                      {vital.bp_reading ? (
-                        <span className="font-semibold text-slate-800">{vital.bp_reading}</span>
-                      ) : (
-                        <span className="text-slate-300">--</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-3.5 whitespace-nowrap">
-                      {vital.heart_rate ? `${vital.heart_rate} bpm` : <span className="text-slate-300">--</span>}
-                    </td>
-                    <td className="px-5 py-3.5 whitespace-nowrap">
-                      {vital.blood_glucose ? (
+        {/* Empty state */}
+        {vitals.length === 0 ? (
+          <div className="p-12 text-center text-slate-400">
+            <FaHeartbeat className="mx-auto text-3xl text-slate-300 mb-2" />
+            <p className="text-sm font-medium">No vital signs recorded yet.</p>
+            <p className="text-xs text-slate-400 mt-1">Click &quot;Log New Vitals&quot; above to add your first reading.</p>
+          </div>
+        ) : (
+          <>
+            {/* Desktop & Tablet Table (Zero horizontal scrollbar) */}
+            <div className="hidden md:block w-full overflow-hidden">
+              <table className="w-full text-left text-xs text-slate-600 table-fixed">
+                <thead className="bg-slate-50 text-[11px] uppercase font-bold text-slate-500 tracking-wider border-b border-slate-100">
+                  <tr>
+                    <th className="px-4 py-3.5 w-[20%]">Date & Provider</th>
+                    <th className="px-4 py-3.5 w-[22%]">Cardiovascular</th>
+                    <th className="px-4 py-3.5 w-[22%]">Metabolic & Respiratory</th>
+                    <th className="px-4 py-3.5 w-[18%]">Body Metrics</th>
+                    <th className="px-4 py-3.5 w-[12%]">Notes</th>
+                    <th className="px-4 py-3.5 w-[6%] text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {[...vitals].reverse().map((vital) => {
+                    const isNormalBP =
+                      vital.systolic_bp && vital.systolic_bp < 120 && (vital.diastolic_bp || 0) < 80;
+                    const isElevatedBP =
+                      vital.systolic_bp && vital.systolic_bp < 130 && (vital.diastolic_bp || 0) < 80;
+                    return (
+                      <tr key={vital.id} className="hover:bg-slate-50/80 transition">
+                        {/* 1. Date & Provider */}
+                        <td className="px-4 py-3.5 align-top">
+                          <p className="font-bold text-slate-900">
+                            {new Date(vital.recorded_at).toLocaleDateString()}
+                          </p>
+                          <p className="text-[11px] text-slate-400">
+                            {new Date(vital.recorded_at).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </p>
+                          <span className="inline-block mt-1 text-[10px] font-semibold text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded truncate max-w-full">
+                            {vital.recorded_by_name || 'Self'}
+                          </span>
+                        </td>
+
+                        {/* 2. Cardiovascular (BP & Pulse) */}
+                        <td className="px-4 py-3.5 align-top space-y-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-extrabold text-slate-900 text-sm">
+                              {vital.bp_reading || '--/--'}
+                            </span>
+                            <span className="text-[11px] text-slate-400">mmHg</span>
+                            {vital.systolic_bp && (
+                              <span
+                                className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                                  isNormalBP
+                                    ? 'bg-emerald-100 text-emerald-700'
+                                    : isElevatedBP
+                                    ? 'bg-amber-100 text-amber-700'
+                                    : 'bg-rose-100 text-rose-700'
+                                }`}
+                              >
+                                {isNormalBP ? 'Normal' : isElevatedBP ? 'Elevated' : 'High'}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-600">
+                            Pulse:{' '}
+                            <span className="font-semibold text-slate-800">
+                              {vital.heart_rate ? `${vital.heart_rate} bpm` : '--'}
+                            </span>
+                          </p>
+                        </td>
+
+                        {/* 3. Metabolic & Respiratory */}
+                        <td className="px-4 py-3.5 align-top space-y-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-bold text-slate-900 text-sm">
+                              {vital.blood_glucose ? `${vital.blood_glucose} mg/dL` : '--'}
+                            </span>
+                            {vital.blood_glucose && vital.glucose_context && (
+                              <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded capitalize">
+                                {vital.glucose_context.replace('_', ' ')}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-slate-500 flex items-center gap-2 flex-wrap">
+                            <span>
+                              SpO2:{' '}
+                              <strong className="text-slate-700">
+                                {vital.oxygen_saturation ? `${vital.oxygen_saturation}%` : '--'}
+                              </strong>
+                            </span>
+                            <span>•</span>
+                            <span>
+                              Temp:{' '}
+                              <strong className="text-slate-700">
+                                {vital.body_temperature ? `${vital.body_temperature}°F` : '--'}
+                              </strong>
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* 4. Body Metrics (Weight & BMI) */}
+                        <td className="px-4 py-3.5 align-top space-y-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-bold text-slate-900">
+                              {vital.bmi ? `${vital.bmi} BMI` : '--'}
+                            </span>
+                            {vital.bmi_category && (
+                              <span
+                                className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                                  vital.bmi_category === 'Normal'
+                                    ? 'bg-emerald-100 text-emerald-700'
+                                    : 'bg-amber-100 text-amber-700'
+                                }`}
+                              >
+                                {vital.bmi_category}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-500">
+                            {vital.weight_kg ? `${vital.weight_kg} kg` : ''}
+                            {vital.weight_kg && vital.height_cm ? ' • ' : ''}
+                            {vital.height_cm ? `${vital.height_cm} cm` : ''}
+                            {!vital.weight_kg && !vital.height_cm && '--'}
+                          </p>
+                        </td>
+
+                        {/* 5. Notes */}
+                        <td className="px-4 py-3.5 align-top text-[11px] text-slate-600 break-words">
+                          {vital.notes || <span className="text-slate-300">--</span>}
+                        </td>
+
+                        {/* 6. Actions */}
+                        <td className="px-4 py-3.5 align-top text-right">
+                          <button
+                            onClick={() => handleDelete(vital.id)}
+                            disabled={deletingId === vital.id}
+                            className="text-slate-400 hover:text-red-600 transition p-1.5 rounded-lg hover:bg-red-50"
+                            title="Delete Record"
+                            aria-label="Delete Record"
+                          >
+                            <FaTrash className="text-xs" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card List View (Strictly Zero Horizontal Scrolling) */}
+            <div className="md:hidden divide-y divide-slate-100">
+              {[...vitals].reverse().map((vital) => {
+                const isNormalBP =
+                  vital.systolic_bp && vital.systolic_bp < 120 && (vital.diastolic_bp || 0) < 80;
+                const isElevatedBP =
+                  vital.systolic_bp && vital.systolic_bp < 130 && (vital.diastolic_bp || 0) < 80;
+                return (
+                  <div key={vital.id} className="p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="font-bold text-xs text-slate-900">
+                          {new Date(vital.recorded_at).toLocaleDateString()}
+                        </span>
+                        <span className="text-[11px] text-slate-400 ml-1.5">
+                          {new Date(vital.recorded_at).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-semibold text-teal-700 bg-teal-50 px-2 py-0.5 rounded">
+                          {vital.recorded_by_name || 'Self'}
+                        </span>
+                        <button
+                          onClick={() => handleDelete(vital.id)}
+                          disabled={deletingId === vital.id}
+                          className="text-slate-400 hover:text-red-600 p-1"
+                          title="Delete Record"
+                          aria-label="Delete Record"
+                        >
+                          <FaTrash className="text-xs" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">
+                          Blood Pressure
+                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-bold text-slate-800">{vital.bp_reading || '--'}</span>
+                          {vital.systolic_bp && (
+                            <span
+                              className={`text-[9px] font-bold px-1 rounded ${
+                                isNormalBP
+                                  ? 'bg-emerald-100 text-emerald-700'
+                                  : isElevatedBP
+                                  ? 'bg-amber-100 text-amber-700'
+                                  : 'bg-rose-100 text-rose-700'
+                              }`}
+                            >
+                              {isNormalBP ? 'Normal' : isElevatedBP ? 'Elevated' : 'High'}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-slate-500 block mt-0.5">
+                          Pulse: {vital.heart_rate ? `${vital.heart_rate} bpm` : '--'}
+                        </span>
+                      </div>
+
+                      <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">
+                          Glucose & SpO2
+                        </span>
+                        <span className="font-bold text-slate-800 block">
+                          {vital.blood_glucose ? `${vital.blood_glucose} mg/dL` : '--'}
+                        </span>
+                        <span className="text-[10px] text-slate-500 block mt-0.5">
+                          SpO2: {vital.oxygen_saturation ? `${vital.oxygen_saturation}%` : '--'}
+                        </span>
+                      </div>
+
+                      <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 col-span-2 flex items-center justify-between">
                         <div>
-                          <span className="font-medium text-slate-800">{vital.blood_glucose} mg/dL</span>
-                          <span className="block text-[11px] text-slate-400 capitalize">
-                            {vital.glucose_context.replace('_', ' ')}
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">
+                            Body Metrics
+                          </span>
+                          <span className="font-bold text-slate-800">
+                            {vital.weight_kg ? `${vital.weight_kg} kg` : '--'} • {vital.bmi ? `${vital.bmi} BMI` : '--'}
                           </span>
                         </div>
-                      ) : (
-                        <span className="text-slate-300">--</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-3.5 whitespace-nowrap text-xs">
-                      <div>SpO2: {vital.oxygen_saturation ? `${vital.oxygen_saturation}%` : '--'}</div>
-                      <div>Temp: {vital.body_temperature ? `${vital.body_temperature}°F` : '--'}</div>
-                    </td>
-                    <td className="px-5 py-3.5 whitespace-nowrap">
-                      {vital.bmi ? (
-                        <div>
-                          <span className="font-semibold text-slate-800">{vital.bmi} BMI</span>
+                        {vital.bmi_category && (
                           <span
-                            className={`ml-2 text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                               vital.bmi_category === 'Normal'
                                 ? 'bg-emerald-100 text-emerald-700'
                                 : 'bg-amber-100 text-amber-700'
@@ -667,37 +842,21 @@ export const VitalsPage: React.FC = () => {
                           >
                             {vital.bmi_category}
                           </span>
-                          <span className="block text-[11px] text-slate-400">
-                            {vital.weight_kg ? `${vital.weight_kg}kg` : ''}
-                            {vital.height_cm ? `, ${vital.height_cm}cm` : ''}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-slate-300">--</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-3.5 whitespace-nowrap text-xs text-slate-500">
-                      {vital.recorded_by_name || 'Self'}
-                    </td>
-                    <td className="px-5 py-3.5 text-xs text-slate-500 max-w-xs truncate">
-                      {vital.notes || '--'}
-                    </td>
-                    <td className="px-5 py-3.5 text-right whitespace-nowrap">
-                      <button
-                        onClick={() => handleDelete(vital.id)}
-                        disabled={deletingId === vital.id}
-                        className="text-slate-400 hover:text-red-600 transition p-1.5 rounded-lg hover:bg-red-50"
-                        title="Delete Record"
-                      >
-                        <FaTrash className="text-xs" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {vital.notes && (
+                      <p className="text-[11px] text-slate-500 bg-slate-50/70 p-2 rounded-lg italic">
+                        {vital.notes}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Log Vitals Modal */}
