@@ -238,7 +238,7 @@ export const VideoConsultationModal: React.FC<VideoConsultationModalProps> = ({
               if (remoteVideoRef.current) {
                 remoteVideoRef.current.srcObject = null;
               }
-              toast('Participant left the room', { icon: 'ℹ️' });
+              toast('Participant left the room');
             }
           } catch (err) {
             console.error('Signaling message error:', err);
