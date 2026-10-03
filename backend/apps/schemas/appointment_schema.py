@@ -26,7 +26,11 @@ class AppointmentSerializer(serializers.ModelSerializer):
 class CreateAppointmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Appointment
-        fields = ['doctor', 'appointment_date', 'duration_minutes', 'reason', 'notes']
+        fields = [
+            'id', 'patient', 'doctor', 'appointment_date',
+            'duration_minutes', 'status', 'reason', 'notes', 'video_room_id'
+        ]
+        read_only_fields = ['id', 'patient', 'status', 'video_room_id']
 
     def validate_doctor(self, doctor):
         """Validate that the doctor is verified and available"""
